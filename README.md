@@ -1,2 +1,2 @@
-# Crash-Buying-
+# Crash-Buying
 Crash Buying Simulator 
