@@ -1,562 +1,1070 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Crash Buying Simulator</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Crash-Buying DCA Simulator · SPX + ETFs</title>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
   <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
   <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-    body { background: #0D1117; }
-    @keyframes pulse  { 0%,100% { opacity:0.4; } 50% { opacity:1; } }
-    @keyframes fadeIn { from { opacity:0; transform:translateY(3px); } to { opacity:1; transform:none; } }
-    ::-webkit-scrollbar { width:6px; height:6px; }
-    ::-webkit-scrollbar-track { background:#161B22; }
-    ::-webkit-scrollbar-thumb { background:#30363D; border-radius:3px; }
-    ::-webkit-scrollbar-thumb:hover { background:#484F58; }
+
+    :root {
+      --bg:       #07090F;
+      --surface:  #0C1018;
+      --surface2: #101420;
+      --border:   #182030;
+      --border2:  #1E2A3C;
+      --text:     #C8D6E8;
+      --muted:    #4A5F78;
+      --muted2:   #2A3B52;
+      --success:  #22C55E;
+      --danger:   #EF4444;
+      --warning:  #F59E0B;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Inter', -apple-system, sans-serif;
+      font-size: 13px;
+      line-height: 1.5;
+      height: 100vh;
+      overflow: hidden;
+    }
+
+    .mono { font-family: 'JetBrains Mono', 'Courier New', monospace; }
+
+    /* ─── HEADER ─────────────────────────────────── */
+    .header {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      padding: 0 18px;
+      height: 48px;
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      flex-shrink: 0;
+    }
+    .logo {
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+    .ticker-tabs { display: flex; gap: 3px; }
+    .ticker-tab {
+      padding: 4px 11px;
+      border-radius: 5px;
+      border: 1px solid var(--border2);
+      background: transparent;
+      color: var(--muted);
+      cursor: pointer;
+      font-size: 12px;
+      font-weight: 700;
+      font-family: 'JetBrains Mono', monospace;
+      transition: all 0.15s;
+    }
+    .ticker-tab:hover { color: var(--text); border-color: var(--muted); }
+    .header-price {
+      margin-left: auto;
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+    .current-price {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 20px;
+      font-weight: 600;
+    }
+    .drawdown-pill {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 12px;
+      padding: 3px 9px;
+      border-radius: 12px;
+    }
+    .refresh-btn {
+      padding: 4px 10px;
+      border: 1px solid var(--border2);
+      background: transparent;
+      color: var(--muted);
+      border-radius: 4px;
+      font-size: 11px;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .refresh-btn:hover { color: var(--text); border-color: var(--muted); }
+
+    /* ─── LAYOUT ──────────────────────────────────── */
+    .app-body {
+      display: grid;
+      grid-template-columns: 270px 1fr;
+      height: calc(100vh - 48px);
+      overflow: hidden;
+    }
+
+    /* ─── LEFT PANEL ─────────────────────────────── */
+    .left-panel {
+      border-right: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+    .left-scroll { overflow-y: auto; flex: 1; }
+
+    /* ─── RIGHT PANEL ────────────────────────────── */
+    .right-panel {
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    /* ─── SECTION HEADERS ────────────────────────── */
+    .sec-hdr {
+      padding: 6px 14px;
+      background: var(--surface2);
+      border-bottom: 1px solid var(--border);
+      font-size: 9.5px;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--muted);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-shrink: 0;
+    }
+    .sec-badge {
+      font-size: 9px;
+      padding: 2px 6px;
+      border-radius: 3px;
+      background: var(--border2);
+      color: var(--muted);
+      font-weight: 600;
+    }
+
+    /* ─── DRAWDOWN METER ─────────────────────────── */
+    .dd-meter-wrap { padding: 12px 14px 10px; border-bottom: 1px solid var(--border); }
+    .dd-top { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 8px; }
+    .dd-value {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 22px;
+      font-weight: 600;
+    }
+    .dd-ath { font-size: 11px; color: var(--muted); }
+    .dd-ath span { font-family: 'JetBrains Mono', monospace; color: var(--warning); }
+    .meter-track {
+      height: 7px;
+      background: var(--border2);
+      border-radius: 4px;
+      position: relative;
+      overflow: visible;
+    }
+    .meter-fill {
+      height: 100%;
+      border-radius: 4px;
+      background: linear-gradient(90deg, #22C55E 0%, #F59E0B 50%, #EF4444 100%);
+      background-size: 300px 100%;
+      transition: width 0.4s ease;
+      position: relative;
+    }
+    .meter-thumb {
+      position: absolute;
+      right: -3px;
+      top: -3px;
+      width: 13px;
+      height: 13px;
+      border-radius: 50%;
+      border: 2px solid var(--surface);
+    }
+    .meter-ticks { display: flex; justify-content: space-between; margin-top: 5px; }
+    .meter-tick { font-size: 9px; color: var(--muted2); font-family: monospace; }
+
+    /* ─── PORTFOLIO ───────────────────────────────── */
+    .cash-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 7px 14px;
+      border-bottom: 1px solid var(--border);
+    }
+    .cash-label { color: var(--muted); font-size: 11px; white-space: nowrap; }
+    .cash-input {
+      flex: 1;
+      text-align: right;
+      background: var(--surface2);
+      border: 1px solid var(--border2);
+      color: var(--text);
+      padding: 4px 8px;
+      border-radius: 4px;
+      font-size: 12px;
+      font-family: 'JetBrains Mono', monospace;
+      outline: none;
+    }
+    .cash-input:focus { border-color: var(--muted); }
+    .pf-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 5px 14px;
+      border-bottom: 1px solid rgba(255,255,255,0.025);
+    }
+    .pf-label { color: var(--muted); font-size: 11.5px; }
+    .pf-val { font-family: 'JetBrains Mono', monospace; font-size: 12px; }
+    .pf-val.bold { font-weight: 600; font-size: 13px; }
+    .pf-val.pos { color: var(--success); }
+    .pf-val.neg { color: var(--danger); }
+
+    /* ─── ALLOCATION GUIDE ───────────────────────── */
+    .alloc-table { width: 100%; border-collapse: collapse; }
+    .alloc-table th {
+      padding: 5px 8px;
+      text-align: left;
+      font-size: 9px;
+      color: var(--muted);
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.07em;
+      background: var(--surface2);
+    }
+    .alloc-table td {
+      padding: 6px 8px;
+      border-bottom: 1px solid rgba(255,255,255,0.03);
+      font-size: 11.5px;
+    }
+    .alloc-row-active { background: rgba(255,255,255,0.04); }
+    .alloc-row-used td { opacity: 0.45; }
+    .dd-cell {
+      font-family: 'JetBrains Mono', monospace;
+      font-weight: 600;
+    }
+    .trigger-cell { font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--muted); }
+    .pct-cell { color: var(--muted); }
+    .amt-cell { font-family: 'JetBrains Mono', monospace; font-size: 11px; }
+    .use-btn {
+      padding: 3px 8px;
+      border: none;
+      border-radius: 3px;
+      cursor: pointer;
+      font-size: 10px;
+      font-weight: 700;
+      font-family: 'JetBrains Mono', monospace;
+      transition: all 0.15s;
+    }
+    .alloc-total-row td {
+      padding: 6px 8px;
+      border-top: 1px solid var(--border2);
+      color: var(--muted);
+      font-size: 11px;
+    }
+
+    /* ─── CHART ───────────────────────────────────── */
+    .chart-wrap {
+      padding: 12px 16px 8px;
+      border-bottom: 1px solid var(--border);
+      flex-shrink: 0;
+    }
+    .chart-meta {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 6px;
+    }
+    .chart-meta-label { font-size: 11px; color: var(--muted); }
+    .chart-legend { display: flex; gap: 14px; font-size: 10px; color: var(--muted2); align-items: center; }
+    .legend-dot { width: 20px; height: 1px; display: inline-block; vertical-align: middle; margin-right: 3px; }
+    .loading-box {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      height: 180px;
+      color: var(--muted);
+      font-size: 12px;
+    }
+    .err-box {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      height: 180px;
+      color: var(--danger);
+      font-size: 12px;
+      text-align: center;
+      padding: 16px;
+    }
+
+    /* ─── TRADE INPUT ─────────────────────────────── */
+    .trade-section {
+      padding: 10px 16px;
+      border-bottom: 1px solid var(--border);
+      flex-shrink: 0;
+    }
+    .trade-row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+    .action-group { display: flex; gap: 3px; }
+    .action-btn {
+      padding: 5px 14px;
+      border: none;
+      border-radius: 4px;
+      font-weight: 700;
+      font-size: 12px;
+      font-family: 'JetBrains Mono', monospace;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .trade-input {
+      width: 130px;
+      background: var(--surface2);
+      border: 1px solid var(--border2);
+      color: var(--text);
+      padding: 5px 9px;
+      border-radius: 4px;
+      font-size: 12px;
+      font-family: 'JetBrains Mono', monospace;
+      outline: none;
+    }
+    .trade-input:focus { border-color: var(--muted); }
+    .trade-note {
+      flex: 1;
+      min-width: 100px;
+      background: var(--surface2);
+      border: 1px solid var(--border2);
+      color: var(--text);
+      padding: 5px 9px;
+      border-radius: 4px;
+      font-size: 12px;
+      outline: none;
+    }
+    .trade-note:focus { border-color: var(--muted); }
+    .trade-units-hint { font-size: 11px; color: var(--muted); font-family: 'JetBrains Mono', monospace; white-space: nowrap; }
+    .exec-btn {
+      padding: 5px 16px;
+      border: none;
+      border-radius: 4px;
+      font-weight: 700;
+      font-size: 12px;
+      cursor: pointer;
+      transition: all 0.15s;
+      white-space: nowrap;
+    }
+    .trade-preview {
+      margin-top: 6px;
+      font-size: 11px;
+      color: var(--muted);
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    /* ─── TRANSACTION LOG ────────────────────────── */
+    .tx-log { flex: 1; overflow-y: auto; }
+    .tx-table { width: 100%; border-collapse: collapse; }
+    .tx-table th {
+      position: sticky;
+      top: 0;
+      padding: 5px 8px;
+      text-align: left;
+      font-size: 9px;
+      color: var(--muted);
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.07em;
+      background: var(--surface2);
+      z-index: 2;
+    }
+    .tx-table td {
+      padding: 6px 8px;
+      border-bottom: 1px solid rgba(255,255,255,0.025);
+      font-size: 11px;
+      font-family: 'JetBrains Mono', monospace;
+    }
+    .badge {
+      display: inline-block;
+      padding: 1px 7px;
+      border-radius: 3px;
+      font-size: 10px;
+      font-weight: 700;
+    }
+    .badge-buy  { background: rgba(34,197,94,0.15);  color: #22C55E; }
+    .badge-sell { background: rgba(239,68,68,0.15);  color: #EF4444; }
+    .tx-del {
+      background: none;
+      border: none;
+      color: var(--muted2);
+      cursor: pointer;
+      padding: 2px 5px;
+      font-size: 13px;
+      transition: color 0.15s;
+    }
+    .tx-del:hover { color: var(--danger); }
+    .tx-empty {
+      padding: 28px;
+      text-align: center;
+      color: var(--muted2);
+      font-size: 12px;
+    }
+
+    /* ─── INDEX BANNER ────────────────────────────── */
+    .index-banner {
+      margin: 10px 14px;
+      padding: 9px 11px;
+      border-radius: 6px;
+      border: 1px solid rgba(6,182,212,0.25);
+      background: rgba(6,182,212,0.06);
+      font-size: 11px;
+      line-height: 1.6;
+      color: var(--muted);
+    }
+    .index-banner strong { color: #06B6D4; }
+    .index-banner .etf-chips { display:flex; gap:5px; margin-top:6px; flex-wrap:wrap; }
+    .index-chip {
+      padding: 2px 8px;
+      border-radius: 4px;
+      font-size: 10.5px;
+      font-family: 'JetBrains Mono', monospace;
+      font-weight: 700;
+      cursor: pointer;
+      border: 1px solid;
+      transition: opacity 0.15s;
+    }
+    .index-chip:hover { opacity: 0.75; }
+
+    /* ─── SCROLLBAR ───────────────────────────────── */
+    ::-webkit-scrollbar { width: 4px; height: 4px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 2px; }
   </style>
 </head>
 <body>
 <div id="root"></div>
-<script type="text/babel" data-presets="react">
-const { useState, useEffect, useCallback, useMemo, useRef } = React;
+<script type="text/babel">
+const { useState, useEffect, useCallback, useRef, useMemo } = React;
 
-// ─── Config ─────────────────────────────────────────────────────────────────
-const INDICES = {
-  QQQ:  { ticker:"qqq.us",  fullName:"Invesco QQQ",            subName:"Nasdaq-100 Technology ETF",                  color:"#22D3EE", dim:"rgba(34,211,238,0.10)"   },
-  SPY:  { ticker:"spy.us",  fullName:"SPDR S&P 500 ETF",       subName:"S&P 500 · State Street · ER 0.0945%",        color:"#4ADE80", dim:"rgba(74,222,128,0.10)"   },
-  VOO:  { ticker:"voo.us",  fullName:"Vanguard S&P 500 ETF",   subName:"S&P 500 · Vanguard · ER 0.03% (lower cost)", color:"#A78BFA", dim:"rgba(167,139,250,0.10)"  },
-  URTH: { ticker:"urth.us", fullName:"iShares MSCI World ETF", subName:"Developed-market global equities",            color:"#FB923C", dim:"rgba(251,146,60,0.10)"   },
+/* ═══════════════════════════════════════════════════
+   CONFIG
+═══════════════════════════════════════════════════ */
+const TICKERS = {
+  SPX:  { label:'SPX',  name:'S&P 500 Index',           stooq:'^spx',    color:'#06B6D4', bg:'rgba(6,182,212,0.12)',   isIndex:true  },
+  SPY:  { label:'SPY',  name:'SPDR S&P 500 ETF',        stooq:'spy.us',  color:'#3B82F6', bg:'rgba(59,130,246,0.12)'  },
+  QQQ:  { label:'QQQ',  name:'Invesco Nasdaq-100 ETF',  stooq:'qqq.us',  color:'#A855F7', bg:'rgba(168,85,247,0.12)'  },
+  VOO:  { label:'VOO',  name:'Vanguard S&P 500 ETF',    stooq:'voo.us',  color:'#22C55E', bg:'rgba(34,197,94,0.12)'   },
+  URTH: { label:'URTH', name:'iShares MSCI World ETF',  stooq:'urth.us', color:'#F59E0B', bg:'rgba(245,158,11,0.12)'  },
 };
 
-const CRASH_EVENTS = [
-  { label:"2018 Trade War",       date:"2018-12-24" },
-  { label:"2020 Covid",           date:"2020-03-23" },
-  { label:"2022 Inflation",       date:"2022-10-13" },
-  { label:"2025 Liberation Day",  date:"2025-04-08" },
-];
-
-const TIERS = [
-  { drawdown:-10, invest:10 },
-  { drawdown:-15, invest:15 },
-  { drawdown:-20, invest:20 },
-  { drawdown:-25, invest:25 },
-  { drawdown:-30, invest:30 },
+// Loo Cheng Chuan's Crash-Buying allocation (Method 1)
+// Draw down -10% → invest 10%, -15% → 15%, etc. Total = 100%
+const DD_LEVELS = [
+  { pct: -10, invest: 10 },
+  { pct: -15, invest: 15 },
+  { pct: -20, invest: 20 },
+  { pct: -25, invest: 25 },
+  { pct: -30, invest: 30 },
 ];
 
 const PROXIES = [
-  u => `https://corsproxy.io/?${encodeURIComponent(u)}`,
   u => `https://api.allorigins.win/raw?url=${encodeURIComponent(u)}`,
-  u => `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(u)}`,
+  u => `https://corsproxy.io/?${encodeURIComponent(u)}`,
+  u => `https://api.codetabs.com/v1/proxy?quest=${u}`,
 ];
 
-const STORAGE_KEY = "crash-sim-v4";
-
-// ─── Utilities ───────────────────────────────────────────────────────────────
-const fmt    = (n, dec=2) => (n==null||isNaN(n)) ? "—" : n.toLocaleString("en-US",{minimumFractionDigits:dec,maximumFractionDigits:dec});
-const fmtUSD = n => (n==null||isNaN(n)) ? "—" : (n<0?"-$":"$")+fmt(Math.abs(n));
-const fmtPct = n => (n==null||isNaN(n)) ? "—" : (n>=0?"+":"")+fmt(n)+"%";
-const shortDate = d => !d ? "—" : new Date(d+"T00:00:00").toLocaleDateString("en-GB",{day:"numeric",month:"short",year:"numeric"});
-
-function parseCSV(csv) {
-  return csv.trim().split("\n").slice(1)
-    .map(l => { const c=l.split(","); const date=c[0]?.trim(); const price=parseFloat(c[4]); return (date&&!isNaN(price)&&price>0)?{date,price}:null; })
-    .filter(Boolean).sort((a,b)=>a.date.localeCompare(b.date));
-}
-
-async function stooqFetch(ticker) {
-  const url = `https://stooq.com/q/d/l/?s=${ticker}&i=d`;
-  for (const proxy of PROXIES) {
+/* ═══════════════════════════════════════════════════
+   HELPERS
+═══════════════════════════════════════════════════ */
+async function fetchWithProxy(url) {
+  for (const makeProxy of PROXIES) {
     try {
       const ctrl = new AbortController();
-      const timer = setTimeout(()=>ctrl.abort(), 10000);
-      const res = await fetch(proxy(url), { signal:ctrl.signal });
-      clearTimeout(timer);
+      const tid = setTimeout(() => ctrl.abort(), 9000);
+      const res = await fetch(makeProxy(url), { signal: ctrl.signal });
+      clearTimeout(tid);
       if (!res.ok) continue;
       const text = await res.text();
-      if (!text||text.length<200||text.toLowerCase().includes("no data")) continue;
-      const rows = parseCSV(text);
-      if (rows.length>50) return rows;
-    } catch { continue; }
+      if (text && text.includes(',') && text.length > 50) return text;
+    } catch { /* try next */ }
   }
-  return null;
+  throw new Error('All proxies failed');
 }
 
-// ─── localStorage ─────────────────────────────────────────────────────────────
-function readSaved()    { try { const s=localStorage.getItem(STORAGE_KEY); return s?JSON.parse(s):null; } catch { return null; } }
-function writeState(d)  { try { localStorage.setItem(STORAGE_KEY,JSON.stringify(d)); } catch {} }
+function parseStooqCSV(csv) {
+  const lines = csv.trim().split('\n');
+  if (lines.length < 2) throw new Error('Empty response');
+  return lines.slice(1).map(line => {
+    const p = line.split(',');
+    const close = parseFloat(p[4]);
+    if (!p[0] || isNaN(close) || close <= 0) return null;
+    return { date: p[0].trim(), close };
+  }).filter(Boolean).sort((a,b) => a.date.localeCompare(b.date));
+}
 
-// ─── ChartSVG (top-level so React never remounts it on parent re-render) ──────
-function ChartSVG({ data, myTrades, peakPrice, color, crashJump }) {
-  const filtered = useMemo(()=>data.filter(d=>d.date>="2016-01-01"),[data]);
-  if (!filtered.length) return null;
+const $  = n => (n == null ? '—' : '$' + n.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2}));
+const u4 = n => (n == null ? '—' : n.toLocaleString('en-US',{minimumFractionDigits:4,maximumFractionDigits:4}));
+const pct = n => (n == null ? '—' : (n >= 0 ? '+' : '') + n.toFixed(2) + '%');
 
-  const W=760,H=190,PL=52,PR=16,PT=16,PB=36;
-  const cw=W-PL-PR, ch=H-PT-PB;
-  const prices = filtered.map(d=>d.price);
-  const minP   = Math.min(...prices)*0.94;
-  const maxP   = Math.max(...prices)*1.03;
-  const t0 = new Date(filtered[0].date).getTime();
-  const t1 = new Date(filtered[filtered.length-1].date).getTime();
-  const span = t1-t0||1;
-  const xOf = d => PL+((new Date(d).getTime()-t0)/span)*cw;
-  const yOf = p => PT+ch-((p-minP)/(maxP-minP))*ch;
-  const pathD = filtered.map((d,i)=>`${i===0?"M":"L"}${xOf(d.date).toFixed(1)},${yOf(d.price).toFixed(1)}`).join(" ");
+/* ═══════════════════════════════════════════════════
+   PRICE CHART
+═══════════════════════════════════════════════════ */
+function PriceChart({ data, peakPrice, triggerLevels, color, ticker }) {
+  const svgRef = useRef(null);
+  const [tip, setTip] = useState(null);
 
-  const last = filtered[filtered.length-1];
-  const peak = filtered.reduce((a,b)=>b.price>a.price?b:a, filtered[0]);
-  const pkX=xOf(peak.date), pkY=yOf(peak.price);
-  const lX=xOf(last.date),  lY=yOf(last.price);
+  const pts = useMemo(() => data.filter((_,i) => i % 5 === 0 || i === data.length-1), [data]);
 
-  const years=[]; for(let y=2017;y<=2026;y++){ const ds=`${y}-01-01`; if(ds>=filtered[0].date&&ds<=last.date) years.push(y); }
-  const yTicks=[0,0.25,0.5,0.75,1].map(r=>({ y:PT+ch*r, label:(()=>{ const p=maxP-(maxP-minP)*r; return p>=1000?`${(p/1000).toFixed(1)}k`:p.toFixed(0); })() }));
-  const crashes=CRASH_EVENTS.filter(e=>e.date>=filtered[0].date&&e.date<=last.date).map(e=>({...e,x:xOf(e.date)}));
-  const dd = peakPrice>0 ? (last.price-peakPrice)/peakPrice*100 : 0;
-  const gid = `ag${color.replace(/[^a-z0-9]/gi,"")}`;
+  if (!pts.length) return null;
+
+  const W=800, H=190, PL=56, PR=36, PT=14, PB=26;
+  const iW = W-PL-PR, iH = H-PT-PB;
+  const prices = pts.map(d => d.close);
+  const lo = Math.min(...prices) * 0.96;
+  const hi = Math.max(...prices) * 1.02;
+
+  const xS = i => PL + (i/(pts.length-1))*iW;
+  const yS = p => PT + ((hi-p)/(hi-lo))*iH;
+
+  const linePath = pts.map((d,i) => `${i?'L':'M'} ${xS(i).toFixed(1)} ${yS(d.close).toFixed(1)}`).join(' ');
+  const areaPath = linePath + ` L ${xS(pts.length-1).toFixed(1)} ${H-PB} L ${PL} ${H-PB} Z`;
+
+  // Nice y-axis labels
+  const range = hi - lo;
+  const rawStep = range / 5;
+  const mag = Math.pow(10, Math.floor(Math.log10(rawStep)));
+  const step = Math.ceil(rawStep / mag) * mag;
+  const yLabels = [];
+  for (let p = Math.ceil(lo/step)*step; p <= hi; p += step) yLabels.push(p);
+
+  // Year labels on x-axis
+  const xLabels = [];
+  let lastY = '';
+  pts.forEach((d,i) => {
+    const yr = d.date.slice(0,4);
+    if (yr !== lastY) { xLabels.push({yr, x:xS(i)}); lastY = yr; }
+  });
+
+  const onMove = e => {
+    const r = svgRef.current.getBoundingClientRect();
+    const mx = (e.clientX - r.left) * (W/r.width) - PL;
+    const idx = Math.max(0, Math.min(pts.length-1, Math.round((mx/iW)*(pts.length-1))));
+    const d = pts[idx];
+    const ddPct = peakPrice ? (d.close - peakPrice)/peakPrice*100 : null;
+    setTip({ x: xS(idx), y: yS(d.close), date: d.date, close: d.close, dd: ddPct });
+  };
 
   return (
-    <svg width="100%" viewBox={`0 0 ${W} ${H}`} style={{display:"block",overflow:"visible"}}>
+    <svg ref={svgRef} viewBox={`0 0 ${W} ${H}`}
+      style={{ width:'100%', height:'auto', cursor:'crosshair', display:'block' }}
+      onMouseMove={onMove} onMouseLeave={() => setTip(null)}>
       <defs>
-        <linearGradient id={gid} x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%"   stopColor={color} stopOpacity="0.22"/>
-          <stop offset="100%" stopColor={color} stopOpacity="0"/>
+        <linearGradient id={`g-${ticker}`} x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%"   stopColor={color} stopOpacity="0.25" />
+          <stop offset="100%" stopColor={color} stopOpacity="0"    />
         </linearGradient>
-        <linearGradient id="ddGrad" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%"   stopColor="#F87171" stopOpacity="0.13"/>
-          <stop offset="100%" stopColor="#F87171" stopOpacity="0"/>
-        </linearGradient>
+        <clipPath id={`cp-${ticker}`}>
+          <rect x={PL} y={PT} width={iW} height={iH} />
+        </clipPath>
       </defs>
 
-      {yTicks.map(({y,label})=>(
-        <g key={label}>
-          <line x1={PL} y1={y} x2={PL+cw} y2={y} stroke="#ffffff08" strokeWidth="1"/>
-          <text x={PL-6} y={y+4} fontSize="9" fill="#555" textAnchor="end">{label}</text>
-        </g>
-      ))}
-      {years.map(yr=>(
-        <text key={yr} x={xOf(`${yr}-01-01`)} y={H-6} fontSize="9" fill="#555" textAnchor="middle">{yr}</text>
-      ))}
-      {crashes.map(e=>(
-        <line key={e.label} x1={e.x} y1={PT} x2={e.x} y2={PT+ch}
-          stroke={crashJump===e.date?"#FB923C":"#FB923C70"}
-          strokeWidth={crashJump===e.date?2:1}
-          strokeDasharray={crashJump===e.date?"0":"3,3"}/>
-      ))}
-      {dd<-5 && <path d={`M${pkX},${pkY} L${lX},${lY} L${lX},${PT+ch} L${pkX},${PT+ch}Z`} fill="url(#ddGrad)"/>}
-      <path d={`${pathD} L${PL+cw},${PT+ch} L${PL},${PT+ch}Z`} fill={`url(#${gid})`}/>
-      <path d={pathD} fill="none" stroke={color} strokeWidth="1.5" strokeLinejoin="round"/>
-      {myTrades.map(t=>{
-        if (!t.date||t.date<filtered[0].date) return null;
-        const tx=xOf(t.date), ty=yOf(t.price);
-        return <polygon key={t.id} points={`${tx},${ty-7} ${tx-5},${ty+3} ${tx+5},${ty+3}`} fill={t.action==="BUY"?"#4ADE80":"#F87171"} stroke="#0D1117" strokeWidth="1"/>;
+      {/* Grid + Y labels */}
+      {yLabels.map(p => {
+        const y = yS(p);
+        if (y < PT || y > H-PB) return null;
+        return <g key={p}>
+          <line x1={PL} x2={W-PR} y1={y} y2={y} stroke="#182030" strokeWidth="1"/>
+          <text x={PL-4} y={y+4} textAnchor="end" fill="#3A5070" fontSize="9.5" fontFamily="monospace">
+            {p >= 1000 ? '$'+(p/1000).toFixed(1)+'k' : '$'+p.toFixed(0)}
+          </text>
+        </g>;
       })}
-      <circle cx={pkX} cy={pkY} r="3.5" fill="#FCD34D" stroke="#0D1117" strokeWidth="1.5"/>
-      <circle cx={lX}  cy={lY}  r="4"   fill={color}   stroke="#0D1117" strokeWidth="1.5"/>
+
+      {/* Area + Line */}
+      <g clipPath={`url(#cp-${ticker})`}>
+        <path d={areaPath} fill={`url(#g-${ticker})`}/>
+        <path d={linePath}  fill="none" stroke={color} strokeWidth="1.5"/>
+      </g>
+
+      {/* ATH dashed line */}
+      {peakPrice && peakPrice >= lo && peakPrice <= hi && (() => {
+        const y = yS(peakPrice);
+        return <>
+          <line x1={PL} x2={W-PR} y1={y} y2={y} stroke="#F59E0B" strokeWidth="1" strokeDasharray="5,4" opacity="0.7"/>
+          <text x={W-PR+3} y={y+4} fill="#F59E0B" fontSize="9" fontFamily="monospace">ATH</text>
+        </>;
+      })()}
+
+      {/* Trigger level lines */}
+      {triggerLevels.map(({pct:p, price}) => {
+        if (!price || price < lo || price > hi) return null;
+        const y = yS(price);
+        const alpha = 0.35 + (Math.abs(p)/30)*0.45;
+        const col = `rgba(239,68,68,${alpha})`;
+        return <g key={p}>
+          <line x1={PL} x2={W-PR} y1={y} y2={y} stroke={col} strokeWidth="0.8" strokeDasharray="3,4"/>
+          <text x={W-PR+3} y={y+4} fill={col} fontSize="9" fontFamily="monospace">{p}%</text>
+        </g>;
+      })}
+
+      {/* X axis years */}
+      {xLabels.map(({yr,x}) => (
+        <text key={yr} x={x} y={H-8} textAnchor="middle" fill="#2A3D58" fontSize="10">{yr}</text>
+      ))}
+
+      {/* Current price marker */}
+      {pts.length > 0 && (() => {
+        const last = pts[pts.length-1];
+        const y = yS(last.close);
+        if (y < PT || y > H-PB) return null;
+        return <circle cx={xS(pts.length-1)} cy={y} r="3" fill={color} />;
+      })()}
+
+      {/* Hover tooltip */}
+      {tip && (() => {
+        const tx = Math.min(tip.x + 8, W - 108);
+        const ty = Math.max(PT, Math.min(tip.y - 34, H-PB-52));
+        return <g>
+          <line x1={tip.x} x2={tip.x} y1={PT} y2={H-PB} stroke="#2A3D58" strokeWidth="1" strokeDasharray="3,3"/>
+          <circle cx={tip.x} cy={tip.y} r="3.5" fill={color}/>
+          <rect x={tx} y={ty} width="104" height={tip.dd!=null?50:34} rx="4" fill="#0C1018" stroke="#182030"/>
+          <text x={tx+7} y={ty+14} fill="#5A7090" fontSize="10" fontFamily="monospace">{tip.date}</text>
+          <text x={tx+7} y={ty+28} fill="white" fontSize="12" fontFamily="monospace" fontWeight="600">
+            ${tip.close.toFixed(2)}
+          </text>
+          {tip.dd != null && (
+            <text x={tx+7} y={ty+43} fill={tip.dd >= 0 ? '#22C55E' : '#EF4444'} fontSize="10" fontFamily="monospace">
+              {tip.dd.toFixed(2)}% vs ATH
+            </text>
+          )}
+        </g>;
+      })()}
     </svg>
   );
 }
 
-// ─── App ─────────────────────────────────────────────────────────────────────
-function App() {
-  const [idx,      setIdx]    = useState("QQQ");
-  const [priceData, setPD]    = useState({QQQ:null,SPY:null,VOO:null,URTH:null});
-  const [fetchStat, setFS]    = useState({QQQ:"idle",SPY:"idle",VOO:"idle",URTH:"idle"});
-  const [fetchErr,  setFE]    = useState({QQQ:null,SPY:null,VOO:null,URTH:null});
-  const [startingCash, setSC] = useState(200000);
-  const [cashInput, setCI]    = useState("200000");
-  const [trades, setTrades]   = useState({QQQ:[],SPY:[],VOO:[],URTH:[]});
-  const [tradeAction, setTA]  = useState("BUY");
-  const [amount, setAmt]      = useState("");
-  const [crashJump, setCJ]    = useState(null);
-  const statRef = useRef({QQQ:"idle",SPY:"idle",VOO:"idle",URTH:"idle"});
+/* ═══════════════════════════════════════════════════
+   DRAWDOWN METER
+═══════════════════════════════════════════════════ */
+function DrawdownMeter({ dd, peakPrice }) {
+  const clampedPct = Math.max(0, Math.min(100, (Math.abs(dd||0) / 30) * 100));
+  const col = dd > -10 ? '#22C55E' : dd > -20 ? '#F59E0B' : '#EF4444';
 
-  // ── Load from localStorage ───────────────────────────────────────────────
-  useEffect(()=>{
-    const saved = readSaved();
-    if (saved) {
-      if (saved.idx)    setIdx(saved.idx);
-      if (saved.cash)   { setSC(saved.cash); setCI(String(saved.cash)); }
-      if (saved.trades) setTrades(cur=>({...cur,...saved.trades}));
-    }
-  },[]);
-
-  // ── Fetch data ───────────────────────────────────────────────────────────
-  const fetchIndex = useCallback(async (sym)=>{
-    if (statRef.current[sym]==="loading"||statRef.current[sym]==="done") return;
-    statRef.current={...statRef.current,[sym]:"loading"};
-    setFS(s=>({...s,[sym]:"loading"}));
-    const rows = await stooqFetch(INDICES[sym].ticker);
-    if (rows&&rows.length>50) {
-      setPD(p=>({...p,[sym]:rows}));
-      statRef.current={...statRef.current,[sym]:"done"};
-      setFS(s=>({...s,[sym]:"done"}));
-    } else {
-      setFE(e=>({...e,[sym]:"Could not load price data. Check internet or CORS proxy access."}));
-      statRef.current={...statRef.current,[sym]:"error"};
-      setFS(s=>({...s,[sym]:"error"}));
-    }
-  },[]);
-
-  useEffect(()=>{ fetchIndex("QQQ"); },[]);
-  useEffect(()=>{ fetchIndex(idx);   },[idx]);
-
-  // ── Persist to localStorage ──────────────────────────────────────────────
-  const persist = useCallback((newTrades,newCash,newIdx)=>{
-    writeState({idx:newIdx??idx, cash:newCash??startingCash, trades:newTrades??trades});
-  },[idx,startingCash,trades]);
-
-  // ── Derived values ───────────────────────────────────────────────────────
-  const data      = priceData[idx]??[];
-  const lastEntry = data[data.length-1];
-  const curPrice  = lastEntry?.price??0;
-  const curDate   = lastEntry?.date??"";
-
-  const peakEntry   = useMemo(()=>data.reduce((a,b)=>b.price>a.price?b:a,{price:0,date:""}), [data]);
-  const peakPrice   = peakEntry.price;
-  const drawdownPct = peakPrice>0 ? (curPrice-peakPrice)/peakPrice*100 : 0;
-
-  const myTrades    = trades[idx]??[];
-  const cashSpent   = myTrades.reduce((s,t)=>s+(t.action==="BUY"?t.amount:-t.amount),0);
-  const totalUnits  = myTrades.reduce((s,t)=>s+(t.action==="BUY"?t.units:-t.units),0);
-  const cashBalance = startingCash-cashSpent;
-  const marketValue = totalUnits*curPrice;
-  const totalEquity = cashBalance+marketValue;
-  const pnl         = totalEquity-startingCash;
-  const returnPct   = startingCash>0 ? pnl/startingCash*100 : 0;
-
-  const allocationGuide = useMemo(()=>TIERS.map(t=>({
-    ...t,
-    triggerPrice: peakPrice*(1+t.drawdown/100),
-    investAmount: startingCash*(t.invest/100),
-    triggered:    drawdownPct<=t.drawdown,
-  })),[peakPrice,startingCash,drawdownPct]);
-
-  const suggestedTier = [...allocationGuide].reverse().find(t=>t.triggered);
-  const amtNum     = parseFloat(amount)||0;
-  const tradeUnits = curPrice>0&&amtNum>0 ? amtNum/curPrice : 0;
-  const pvwCash    = cashBalance-(tradeAction==="BUY"?amtNum:-amtNum);
-  const pvwUnits   = totalUnits+(tradeAction==="BUY"?tradeUnits:-tradeUnits);
-  const pvwEquity  = pvwCash+pvwUnits*curPrice;
-
-  const cfg      = INDICES[idx];
-  const barFill  = Math.min(Math.abs(Math.max(-30,Math.min(0,drawdownPct)))/30*100,100);
-  const barColor = drawdownPct<-20?"#F87171":drawdownPct<-10?"#FBBF24":cfg.color;
-
-  // ── Handlers ─────────────────────────────────────────────────────────────
-  const executeTrade = ()=>{
-    if (!tradeUnits||!curPrice||!curDate) return;
-    const sign=tradeAction==="BUY"?1:-1;
-    const nca=cashBalance-sign*amtNum, nua=totalUnits+sign*tradeUnits;
-    const t={id:Date.now(),date:curDate,price:curPrice,action:tradeAction,units:tradeUnits,amount:amtNum,cashAfter:nca,unitsAfter:nua,equityAfter:nca+nua*curPrice};
-    const nt={...trades,[idx]:[...(trades[idx]??[]),t]};
-    setTrades(nt); setAmt(""); persist(nt,null,null);
-  };
-  const deleteTrade = id=>{ const nt={...trades,[idx]:(trades[idx]??[]).filter(t=>t.id!==id)}; setTrades(nt); persist(nt,null,null); };
-  const clearAll    = ()=>{ const nt={...trades,[idx]:[]}; setTrades(nt); persist(nt,null,null); };
-  const suggest     = ()=>{ if(suggestedTier){setAmt(String(suggestedTier.investAmount));setTA("BUY");} };
-  const switchIdx   = sym=>{ setIdx(sym); setAmt(""); persist(null,null,sym); };
-  const handleCash  = val=>{ setCI(val); const n=parseFloat(val.replace(/,/g,"")); if(!isNaN(n)&&n>0){setSC(n);persist(null,n,null);} };
-  const retryFetch  = sym=>{ statRef.current={...statRef.current,[sym]:"idle"}; setPD(p=>({...p,[sym]:null})); setFS(s=>({...s,[sym]:"idle"})); setFE(e=>({...e,[sym]:null})); setTimeout(()=>fetchIndex(sym),50); };
-
-  // ── Styles ────────────────────────────────────────────────────────────────
-  const CARD = {background:"#161B22",borderRadius:12,padding:"14px 16px",border:"1px solid #21262D"};
-  const SH   = {fontSize:10,fontWeight:700,letterSpacing:"0.1em",color:"#555",textTransform:"uppercase",marginBottom:12};
-  const INP  = {width:"100%",background:"#21262D",border:"1px solid #30363D",borderRadius:6,padding:"7px 10px",color:"#E6EDF3",fontSize:13,fontWeight:600,textAlign:"right",outline:"none"};
-
-  // ── Render ────────────────────────────────────────────────────────────────
   return (
-    <div style={{background:"#0D1117",color:"#E6EDF3",minHeight:"100vh",fontFamily:"'Inter',-apple-system,BlinkMacSystemFont,sans-serif",padding:16,fontSize:13}}>
-
-      {/* ── Header ──────────────────────────────────────────────────── */}
-      <div style={{display:"flex",alignItems:"flex-start",marginBottom:14,gap:12,flexWrap:"wrap"}}>
-        <div style={{flex:1,minWidth:220}}>
-          <div style={{fontSize:10,color:"#555",letterSpacing:"0.1em",textTransform:"uppercase",marginBottom:2}}>Crash Buying Simulator</div>
-          <div style={{fontSize:20,fontWeight:800,letterSpacing:"-0.03em"}}>Drawdown-Triggered DCA</div>
-          <div style={{fontSize:11,color:"#555",marginTop:3}}>{cfg.fullName} · <span style={{color:cfg.color}}>{cfg.subName}</span></div>
-        </div>
-        {/* Index tabs */}
-        <div style={{display:"flex",gap:4,background:"#161B22",borderRadius:10,padding:4,border:"1px solid #21262D"}}>
-          {Object.entries(INDICES).map(([sym,c])=>(
-            <button key={sym} onClick={()=>switchIdx(sym)} style={{
-              padding:"7px 16px",borderRadius:7,border:"none",cursor:"pointer",
-              fontSize:13,fontWeight:700,transition:"all 0.18s",
-              background:idx===sym?c.color:"transparent",
-              color:idx===sym?"#0D1117":"#555",
-              boxShadow:idx===sym?`0 0 14px ${c.color}44`:"none",
-            }}>{sym}</button>
-          ))}
-        </div>
+    <div className="dd-meter-wrap">
+      <div className="dd-top">
+        <span className="dd-value" style={{color: col}}>{pct(dd)}</span>
+        <span className="dd-ath">ATH <span>{$(peakPrice)}</span></span>
       </div>
-
-      {/* ── Chart Card ──────────────────────────────────────────────── */}
-      <div style={{...CARD,marginBottom:12,border:`1px solid ${cfg.color}22`}}>
-        {/* Drawdown bar */}
-        <div style={{marginBottom:12}}>
-          <div style={{display:"flex",justifyContent:"space-between",fontSize:11,marginBottom:5}}>
-            <span style={{color:"#555"}}>Peak to Date</span>
-            <span style={{color:drawdownPct<-10?"#F87171":"#888",fontWeight:600}}>
-              {curPrice>0 ? `${fmtPct(drawdownPct)} from $${fmt(peakPrice)} peak` : "Loading…"}
-            </span>
-          </div>
-          <div style={{position:"relative",height:6,background:"#21262D",borderRadius:3,overflow:"hidden"}}>
-            <div style={{position:"absolute",left:0,top:0,bottom:0,width:`${barFill}%`,background:barColor,borderRadius:3,transition:"width 0.5s ease"}}/>
-            {[-10,-15,-20,-25,-30].map(p=>(
-              <div key={p} style={{position:"absolute",left:`${Math.abs(p)/30*100}%`,top:0,bottom:0,width:1,background:"#0D1117"}}/>
-            ))}
-          </div>
-          <div style={{display:"flex",justifyContent:"space-between",marginTop:2,fontSize:9,color:"#444"}}>
-            {[-10,-15,-20,-25,-30].map(p=><span key={p}>{p}%</span>)}
-          </div>
+      <div className="meter-track">
+        <div className="meter-fill" style={{ width: `${clampedPct}%` }}>
+          <div className="meter-thumb" style={{ background: col }} />
         </div>
-
-        {/* Crash event buttons */}
-        <div style={{display:"flex",gap:6,marginBottom:12,flexWrap:"wrap"}}>
-          {CRASH_EVENTS.map(e=>(
-            <button key={e.label} onClick={()=>{setCJ(e.date);setTimeout(()=>setCJ(null),2500);}} style={{
-              padding:"3px 10px",borderRadius:5,border:"1px solid #FB923C60",
-              background:crashJump===e.date?"#FB923C":"transparent",
-              color:crashJump===e.date?"#0D1117":"#FB923C",
-              fontSize:10,fontWeight:600,cursor:"pointer",transition:"all 0.15s",
-            }}>{e.label}</button>
-          ))}
-        </div>
-
-        {/* Chart */}
-        {fetchStat[idx]==="loading" && (
-          <div style={{height:190,display:"flex",alignItems:"center",justifyContent:"center",color:"#555",fontSize:12}}>
-            <span style={{animation:"pulse 1.4s ease-in-out infinite"}}>Loading {idx} data via Stooq…</span>
-          </div>
-        )}
-        {fetchStat[idx]==="error" && (
-          <div style={{height:190,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:10}}>
-            <div style={{color:"#F87171",fontSize:12,textAlign:"center",maxWidth:380}}>{fetchErr[idx]}</div>
-            <button onClick={()=>retryFetch(idx)} style={{padding:"7px 20px",borderRadius:7,border:"none",background:cfg.color,color:"#0D1117",cursor:"pointer",fontSize:12,fontWeight:700}}>Retry</button>
-          </div>
-        )}
-        {fetchStat[idx]==="done"&&data.length>0 && (
-          <ChartSVG data={data} myTrades={myTrades} peakPrice={peakPrice} color={cfg.color} crashJump={crashJump}/>
-        )}
-
-        {/* Chart footer */}
-        {curPrice>0 && (
-          <div style={{display:"flex",justifyContent:"space-between",marginTop:8,fontSize:11,flexWrap:"wrap",gap:4}}>
-            <span style={{color:"#555"}}>Current: <strong style={{color:cfg.color}}>${fmt(curPrice)}</strong></span>
-            <span style={{color:"#555"}}>As of: <strong style={{color:"#888"}}>{shortDate(curDate)}</strong></span>
-            <span style={{color:"#555"}}>ATH: <strong style={{color:"#FCD34D"}}>${fmt(peakPrice)}</strong> <span style={{color:"#444"}}>({shortDate(peakEntry.date)})</span></span>
-          </div>
-        )}
+        {DD_LEVELS.map(l => (
+          <div key={l.pct} style={{
+            position:'absolute', left:`${Math.abs(l.pct)/30*100}%`,
+            top:-3, width:1, height:13, background:'rgba(255,255,255,0.08)'
+          }}/>
+        ))}
       </div>
-
-      {/* ── Main grid ─────────────────────────────────────────────────── */}
-      <div style={{display:"grid",gridTemplateColumns:"220px 1fr",gap:12}}>
-
-        {/* ── Left column ─────────────────────────────────────────── */}
-        <div style={{display:"flex",flexDirection:"column",gap:12}}>
-
-          {/* Portfolio */}
-          <div style={CARD}>
-            <div style={SH}>Portfolio · {idx}</div>
-            <div style={{marginBottom:10}}>
-              <div style={{fontSize:10,color:"#555",marginBottom:4}}>Starting Cash</div>
-              <input value={cashInput} onChange={e=>handleCash(e.target.value)} style={INP}/>
-            </div>
-            {[
-              ["Cash Balance", fmtUSD(cashBalance), cashBalance<0?"#F87171":"#E6EDF3"],
-              ["Units Held",   fmt(totalUnits,4),   "#E6EDF3"],
-              ["Market Value", fmtUSD(marketValue),  "#E6EDF3"],
-              ["Total Equity", fmtUSD(totalEquity),  "#E6EDF3"],
-              ["P&L",          fmtUSD(pnl),          pnl>=0?"#4ADE80":"#F87171"],
-              ["Return %",     fmtPct(returnPct),    returnPct>=0?"#4ADE80":"#F87171"],
-            ].map(([label,value,color])=>(
-              <div key={label} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"6px 0",borderBottom:"1px solid #21262D"}}>
-                <span style={{fontSize:12,color:"#666"}}>{label}</span>
-                <span style={{fontSize:13,fontWeight:600,color}}>{value}</span>
-              </div>
-            ))}
-          </div>
-
-          {/* Allocation Guide */}
-          <div style={CARD}>
-            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}}>
-              <div style={SH}>Allocation Guide</div>
-              <div style={{fontSize:9,color:cfg.color,fontWeight:700}}>Crash-Buy Rule</div>
-            </div>
-            <table style={{width:"100%",borderCollapse:"collapse",fontSize:11}}>
-              <thead>
-                <tr>
-                  {["Draw","Trigger","Invest","Amt"].map(h=>(
-                    <th key={h} style={{fontSize:9,color:"#444",fontWeight:500,paddingBottom:5,textAlign:(h==="Draw"||h==="Invest")?"center":"right"}}>{h}</th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {allocationGuide.map(t=>(
-                  <tr key={t.drawdown} style={{background:t.triggered?cfg.dim:"transparent"}}>
-                    <td style={{textAlign:"center",padding:"4px 2px",color:t.triggered?cfg.color:"#555",fontWeight:t.triggered?700:400}}>{t.drawdown}%</td>
-                    <td style={{textAlign:"right",padding:"4px 3px",color:"#E6EDF3"}}>${fmt(t.triggerPrice,0)}</td>
-                    <td style={{textAlign:"center",padding:"4px 2px",color:"#555"}}>{t.invest}%</td>
-                    <td style={{textAlign:"right",padding:"4px 0 4px 3px",color:"#888"}}>${(t.investAmount/1000).toFixed(0)}k</td>
-                  </tr>
-                ))}
-                <tr style={{borderTop:"1px solid #21262D"}}>
-                  <td colSpan={2} style={{color:"#444",fontSize:9,paddingTop:5}}>Total</td>
-                  <td style={{textAlign:"center",color:"#666",fontWeight:700,paddingTop:5}}>100%</td>
-                  <td style={{textAlign:"right",color:"#666",fontWeight:700,paddingTop:5}}>${(startingCash/1000).toFixed(0)}k</td>
-                </tr>
-              </tbody>
-            </table>
-            {suggestedTier && (
-              <div style={{marginTop:10,padding:"6px 10px",borderRadius:6,background:cfg.dim,border:`1px solid ${cfg.color}40`,fontSize:10,color:cfg.color}}>
-                ⚡ {fmt(drawdownPct,1)}% drawdown — {suggestedTier.drawdown}% tier triggered. Suggested: ${fmt(suggestedTier.investAmount,0)}
-              </div>
-            )}
-          </div>
-
-          {/* Note for SPY/VOO */}
-          {(idx==="SPY"||idx==="VOO") && (
-            <div style={{...CARD,fontSize:10,color:"#555",lineHeight:1.5,border:"1px solid #21262D"}}>
-              <div style={{color:cfg.color,fontWeight:700,marginBottom:4}}>SPY vs VOO</div>
-              Both track the S&P 500. SPY trades at ~1/10th of the SPX index level (e.g. SPY $530 ≈ SPX 5,300). Vanguard VOO has a lower expense ratio (0.03% vs 0.0945%) but slightly lower liquidity. Results should be near-identical.
-            </div>
-          )}
-          {idx==="URTH" && (
-            <div style={{...CARD,fontSize:10,color:"#555",lineHeight:1.5,border:"1px solid #21262D"}}>
-              <div style={{color:cfg.color,fontWeight:700,marginBottom:4}}>URTH · MSCI World</div>
-              Covers ~1,500 large/mid-cap stocks across 23 developed markets. US weight ~70%, followed by Japan, UK, France, Canada. More diversified than pure US ETFs but historically lower returns.
-            </div>
-          )}
-        </div>
-
-        {/* ── Right column ────────────────────────────────────────── */}
-        <div style={{display:"flex",flexDirection:"column",gap:12}}>
-
-          {/* Trade Input */}
-          <div style={CARD}>
-            <div style={SH}>Trade Input</div>
-            <div style={{display:"grid",gridTemplateColumns:"auto 1fr 1fr",gap:12,alignItems:"end",marginBottom:12}}>
-              <div>
-                <div style={{fontSize:10,color:"#555",marginBottom:5}}>Action</div>
-                <div style={{display:"flex",gap:4}}>
-                  {["BUY","SELL"].map(a=>(
-                    <button key={a} onClick={()=>setTA(a)} style={{
-                      padding:"7px 14px",borderRadius:6,border:"none",cursor:"pointer",
-                      fontSize:12,fontWeight:700,transition:"all 0.15s",
-                      background:tradeAction===a?(a==="BUY"?cfg.color:"#F87171"):"#21262D",
-                      color:tradeAction===a?"#0D1117":"#555",
-                    }}>{a}</button>
-                  ))}
-                </div>
-              </div>
-              <div>
-                <div style={{fontSize:10,color:"#555",marginBottom:5}}>Amount ($)</div>
-                <input value={amount} onChange={e=>setAmt(e.target.value)} placeholder="0" style={INP}/>
-              </div>
-              <div>
-                <div style={{fontSize:10,color:"#555",marginBottom:5}}>Units (auto)</div>
-                <div style={{background:"#21262D",borderRadius:6,padding:"7px 10px",color:"#555",fontSize:13,fontWeight:600,textAlign:"right"}}>
-                  {tradeUnits>0?fmt(tradeUnits,4):"0.0000"}
-                </div>
-              </div>
-            </div>
-
-            <div style={{display:"flex",gap:8,marginBottom:12}}>
-              <button onClick={suggest} disabled={!suggestedTier||curPrice<=0} style={{
-                flex:1,padding:"10px 0",borderRadius:8,border:`1px solid ${cfg.color}60`,
-                background:"transparent",color:cfg.color,
-                cursor:(suggestedTier&&curPrice>0)?"pointer":"not-allowed",
-                fontSize:12,fontWeight:700,opacity:(suggestedTier&&curPrice>0)?1:0.3,transition:"all 0.15s",
-              }}>Suggest</button>
-              <button onClick={executeTrade} disabled={!tradeUnits||curPrice<=0} style={{
-                flex:2.5,padding:"10px 0",borderRadius:8,border:"none",
-                background:(tradeUnits>0&&curPrice>0)?cfg.color:"#21262D",
-                color:(tradeUnits>0&&curPrice>0)?"#0D1117":"#444",
-                cursor:(tradeUnits>0&&curPrice>0)?"pointer":"not-allowed",
-                fontSize:13,fontWeight:800,transition:"all 0.15s",
-                boxShadow:(tradeUnits>0&&curPrice>0)?`0 0 16px ${cfg.color}44`:"none",
-              }}>Execute Trade</button>
-            </div>
-
-            {/* Preview */}
-            {tradeUnits>0&&curPrice>0 && (
-              <div style={{background:"#0D1117",borderRadius:8,padding:"10px 12px",border:"1px solid #21262D",animation:"fadeIn 0.2s ease"}}>
-                <div style={{color:"#444",fontSize:9,textTransform:"uppercase",letterSpacing:"0.08em",marginBottom:8}}>Trade Preview</div>
-                <div style={{display:"grid",gridTemplateColumns:"repeat(6,1fr)",gap:8}}>
-                  {[["Date",shortDate(curDate)],["Price",`$${fmt(curPrice)}`],["Action",tradeAction],["Units",fmt(tradeUnits,4)],["Cash After",fmtUSD(pvwCash)],["Equity After",fmtUSD(pvwEquity)]].map(([label,value])=>(
-                    <div key={label}>
-                      <div style={{color:"#444",fontSize:9,marginBottom:2}}>{label}</div>
-                      <div style={{color:"#E6EDF3",fontWeight:600,fontSize:11}}>{value}</div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-          </div>
-
-          {/* Transaction Log */}
-          <div style={{...CARD,flex:1}}>
-            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}}>
-              <div style={SH}>Transaction Log · {idx}</div>
-              <div style={{display:"flex",gap:8,alignItems:"center"}}>
-                <span style={{fontSize:10,color:"#555"}}>{myTrades.length} trade{myTrades.length!==1?"s":""}</span>
-                {myTrades.length>0 && (
-                  <button onClick={clearAll} style={{padding:"3px 8px",borderRadius:5,border:"1px solid #F8717140",background:"transparent",color:"#F87171",cursor:"pointer",fontSize:10}}>Clear all</button>
-                )}
-              </div>
-            </div>
-
-            {myTrades.length===0 ? (
-              <div style={{textAlign:"center",color:"#333",padding:"28px 0",fontSize:12}}>
-                No trades for {idx} yet — execute a trade above.
-              </div>
-            ) : (
-              <div style={{overflowX:"auto"}}>
-                <table style={{width:"100%",borderCollapse:"collapse",fontSize:11,whiteSpace:"nowrap"}}>
-                  <thead>
-                    <tr style={{borderBottom:"1px solid #21262D"}}>
-                      {["#","Date","Price","Action","Units","Amount","Cash After","Equity After",""].map(h=>(
-                        <th key={h} style={{textAlign:h==="#"?"center":"right",color:"#444",fontWeight:500,paddingBottom:6,paddingRight:h===""?0:8,fontSize:10}}>{h}</th>
-                      ))}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {myTrades.map((t,i)=>(
-                      <tr key={t.id} style={{borderBottom:"1px solid #21262D18"}}>
-                        <td style={{textAlign:"center",padding:"6px 4px",color:"#444"}}>{i+1}</td>
-                        <td style={{textAlign:"right",padding:"6px 8px 6px 0",color:"#666"}}>{t.date}</td>
-                        <td style={{textAlign:"right",padding:"6px 8px 6px 0",color:"#E6EDF3"}}>${fmt(t.price)}</td>
-                        <td style={{textAlign:"right",padding:"6px 8px 6px 0"}}>
-                          <span style={{background:t.action==="BUY"?"#4ADE8022":"#F8717122",color:t.action==="BUY"?"#4ADE80":"#F87171",padding:"2px 6px",borderRadius:4,fontSize:10,fontWeight:700}}>{t.action}</span>
-                        </td>
-                        <td style={{textAlign:"right",padding:"6px 8px 6px 0",color:"#E6EDF3"}}>{fmt(t.units,4)}</td>
-                        <td style={{textAlign:"right",padding:"6px 8px 6px 0",color:"#E6EDF3"}}>${fmt(t.amount)}</td>
-                        <td style={{textAlign:"right",padding:"6px 8px 6px 0",color:"#888"}}>{fmtUSD(t.cashAfter)}</td>
-                        <td style={{textAlign:"right",padding:"6px 8px 6px 0",color:"#888"}}>{fmtUSD(t.equityAfter)}</td>
-                        <td style={{textAlign:"right",padding:"6px 0"}}>
-                          <button onClick={()=>deleteTrade(t.id)} style={{background:"none",border:"none",color:"#555",cursor:"pointer",fontSize:16,lineHeight:1,padding:"0 4px"}}>×</button>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
-          </div>
-        </div>
-      </div>
-
-      {/* Footer */}
-      <div style={{marginTop:14,textAlign:"center",fontSize:10,color:"#2D333B"}}>
-        Price data via Stooq (end-of-day, delayed) · For educational backtesting only · Not financial advice
-        · QQQ = Nasdaq-100 · SPY &amp; VOO = S&P 500 (price ~1/10 SPX index level) · URTH = MSCI World developed markets
-        · Trades saved in browser localStorage
+      <div className="meter-ticks">
+        {['0%','-10%','-15%','-20%','-25%','-30%'].map(t => (
+          <span key={t} className="meter-tick">{t}</span>
+        ))}
       </div>
     </div>
   );
 }
 
-ReactDOM.createRoot(document.getElementById("root")).render(<App/>);
+/* ═══════════════════════════════════════════════════
+   MAIN APP
+═══════════════════════════════════════════════════ */
+function App() {
+  const [ticker, setTicker]     = useState('SPX');
+  const [cash, setCash]         = useState(200000);
+  const [cashStr, setCashStr]   = useState('200000');
+  const [hist, setHist]         = useState([]);
+  const [loading, setLoading]   = useState(false);
+  const [errMsg, setErrMsg]     = useState(null);
+  const [action, setAction]     = useState('BUY');
+  const [amtStr, setAmtStr]     = useState('');
+  const [note, setNote]         = useState('');
+
+  const tc = TICKERS[ticker];
+
+  // Per-ticker transaction persistence
+  const [txs, setTxs] = useState(() => {
+    try { return JSON.parse(localStorage.getItem(`dca_${ticker}`) || '[]'); } catch { return []; }
+  });
+
+  useEffect(() => {
+    try { const s = JSON.parse(localStorage.getItem(`dca_${ticker}`) || '[]'); setTxs(s); } catch { setTxs([]); }
+  }, [ticker]);
+
+  useEffect(() => {
+    try { localStorage.setItem(`dca_${ticker}`, JSON.stringify(txs)); } catch {}
+  }, [txs, ticker]);
+
+  // Fetch data
+  const fetchData = useCallback(async () => {
+    setLoading(true); setErrMsg(null);
+    try {
+      const url = `https://stooq.com/q/d/l/?s=${tc.stooq}&i=d&d1=20150101`;
+      const csv = await fetchWithProxy(url);
+      const parsed = parseStooqCSV(csv);
+      if (!parsed.length) throw new Error('No price data returned');
+      setHist(parsed);
+    } catch(e) {
+      setErrMsg(`Could not load ${ticker} data. ${e.message}. Check console or try again.`);
+    } finally { setLoading(false); }
+  }, [ticker, tc.stooq]);
+
+  useEffect(() => { fetchData(); }, [fetchData]);
+
+  // Derived market data
+  const currentPrice = hist.length ? hist[hist.length-1].close : null;
+  const currentDate  = hist.length ? hist[hist.length-1].date  : null;
+  const peakPrice    = hist.length ? Math.max(...hist.map(d=>d.close)) : null;
+  const dd           = currentPrice && peakPrice ? (currentPrice - peakPrice) / peakPrice * 100 : null;
+
+  // Allocation guide
+  const guide = useMemo(() => {
+    if (!peakPrice) return [];
+    return DD_LEVELS.map(({pct:p, invest}) => {
+      const triggerPrice = peakPrice * (1 + p/100);
+      const amount = cash * invest / 100;
+      const triggered = dd != null && dd <= p;
+      // "active" = we are currently at this particular band
+      const nextPct = DD_LEVELS.find(l => l.pct === p + (-5)) ?.pct ?? -35;
+      const active = dd != null && dd <= p && dd > nextPct;
+      return { pct: p, invest, triggerPrice, amount, triggered, active };
+    });
+  }, [peakPrice, cash, dd]);
+
+  // Trigger lines for chart
+  const triggerLevels = useMemo(() => {
+    if (!peakPrice) return [];
+    return DD_LEVELS.map(({pct:p}) => ({ pct:p, price: peakPrice*(1+p/100) }));
+  }, [peakPrice]);
+
+  // Portfolio math
+  const pf = useMemo(() => {
+    const buys  = txs.filter(t => t.action==='BUY');
+    const sells = txs.filter(t => t.action==='SELL');
+    const spent    = buys.reduce((s,t) => s+t.amount, 0);
+    const received = sells.reduce((s,t) => s+t.amount, 0);
+    const cashBal   = cash - spent + received;
+    const unitsHeld = buys.reduce((s,t)=>s+t.units,0) - sells.reduce((s,t)=>s+t.units,0);
+    const mktVal    = currentPrice ? unitsHeld * currentPrice : 0;
+    const equity    = cashBal + mktVal;
+    const pl        = equity - cash;
+    const ret       = cash > 0 ? (pl/cash)*100 : 0;
+    return { cashBal, unitsHeld, mktVal, equity, pl, ret };
+  }, [txs, cash, currentPrice]);
+
+  // Trade preview
+  const tradeAmt   = parseFloat(amtStr) || 0;
+  const tradeUnits = currentPrice && tradeAmt ? tradeAmt / currentPrice : 0;
+
+  // Execute trade
+  const execTrade = () => {
+    if (!tradeAmt || !currentPrice) return;
+    const newTx = {
+      id:     Date.now(),
+      date:   currentDate || new Date().toISOString().slice(0,10),
+      price:  currentPrice,
+      action,
+      units:  tradeUnits,
+      amount: tradeAmt,
+      note:   note.trim(),
+    };
+    setTxs(prev => [...prev, newTx]);
+    setAmtStr(''); setNote('');
+  };
+
+  const removeTx = id => setTxs(prev => prev.filter(t => t.id !== id));
+  const clearAll = () => { if(confirm(`Clear all ${ticker} transactions?`)) setTxs([]); };
+
+  // Running portfolio state for tx log
+  const txWithState = useMemo(() => {
+    let runCash  = cash;
+    let runUnits = 0;
+    return txs.map(tx => {
+      if (tx.action === 'BUY')  { runCash -= tx.amount; runUnits += tx.units; }
+      else                      { runCash += tx.amount; runUnits -= tx.units; }
+      const equity = runCash + runUnits * tx.price;
+      return { ...tx, cashAfter: runCash, unitsAfter: runUnits, equityAfter: equity };
+    });
+  }, [txs, cash]);
+
+  return (
+    <div style={{ display:'flex', flexDirection:'column', height:'100vh' }}>
+
+      {/* ── HEADER ──────────────────────────────── */}
+      <div className="header">
+        <span className="logo">⚡ Crash-Buying DCA · LCC Method 1</span>
+
+        <div className="ticker-tabs">
+          {Object.values(TICKERS).map(t => (
+            <button key={t.label} className="ticker-tab"
+              style={ticker===t.label ? {background:t.bg, borderColor:t.color, color:t.color} : {}}
+              onClick={() => setTicker(t.label)}>
+              {t.label}
+            </button>
+          ))}
+        </div>
+
+        <div className="header-price">
+          {currentPrice ? <>
+            <span className="current-price" style={{color:tc.color}}>{$(currentPrice)}</span>
+            {dd != null && (
+              <span className="drawdown-pill"
+                style={{ background: dd > -10 ? 'rgba(34,197,94,0.12)' : dd > -20 ? 'rgba(245,158,11,0.12)' : 'rgba(239,68,68,0.12)',
+                         color: dd > -10 ? '#22C55E' : dd > -20 ? '#F59E0B' : '#EF4444' }}>
+                {pct(dd)} from ATH
+              </span>
+            )}
+          </> : loading ? <span style={{color:'var(--muted)',fontSize:12}}>Loading…</span> : null}
+          <button className="refresh-btn" onClick={fetchData}>↻ Refresh</button>
+        </div>
+      </div>
+
+      {/* ── BODY ────────────────────────────────── */}
+      <div className="app-body">
+
+        {/* ── LEFT PANEL ─────────────────────── */}
+        <div className="left-panel">
+          <div className="left-scroll">
+
+            {/* Drawdown Meter */}
+            <div className="sec-hdr">
+              <span>Drawdown Status</span>
+              <span style={{color:tc.color, fontSize:9}}>{tc.name}</span>
+            </div>
+            {dd != null
+              ? <DrawdownMeter dd={dd} peakPrice={peakPrice}/>
+              : <div style={{padding:'12px 14px',color:'var(--muted)',fontSize:12}}>
+                  {loading ? 'Fetching price data…' : errMsg ? 'Price unavailable' : '—'}
+                </div>
+            }
+
+            {/* Index reference banner — shown only when SPX is selected */}
+            {tc.isIndex && (
+              <div className="index-banner">
+                <strong>S&amp;P 500 Index · Reference Only</strong><br/>
+                This is the raw index used by Loo Cheng Chuan's crash-buying simulator (~$5,500 level).
+                It is <em>not directly purchasable</em>. To act on drawdown signals, buy one of these ETFs instead:
+                <div className="etf-chips">
+                  {['SPY','VOO'].map(t => (
+                    <button key={t} className="index-chip"
+                      style={{background: TICKERS[t].bg, borderColor: TICKERS[t].color, color: TICKERS[t].color}}
+                      onClick={() => setTicker(t)}>
+                      {t} · {t==='SPY'?'≈ SPX ÷ 10':'≈ SPX ÷ 10'}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Starting Cash */}
+            <div className="cash-row">
+              <span className="cash-label">Starting Cash</span>
+              <input className="cash-input" type="number" value={cashStr}
+                onChange={e => {
+                  setCashStr(e.target.value);
+                  const n = parseFloat(e.target.value);
+                  if (!isNaN(n) && n > 0) setCash(n);
+                }} />
+            </div>
+
+            {/* Portfolio */}
+            <div className="sec-hdr"><span>Portfolio</span></div>
+            {[
+              { label:'Cash Balance',  val: $(pf.cashBal)  },
+              { label:'Units Held',    val: u4(pf.unitsHeld) },
+              { label:'Market Value',  val: $(pf.mktVal)   },
+              { label:'Total Equity',  val: $(pf.equity), bold:true },
+              { label:'P&L',           val: $(pf.pl), cls: pf.pl>=0?'pos':'neg' },
+              { label:'Return',        val: pct(pf.ret), cls: pf.ret>=0?'pos':'neg' },
+            ].map(({label,val,bold,cls}) => (
+              <div key={label} className="pf-row">
+                <span className="pf-label">{label}</span>
+                <span className={`pf-val mono ${bold?'bold':''} ${cls||''}`}>{val}</span>
+              </div>
+            ))}
+
+            {/* Allocation Guide */}
+            <div className="sec-hdr">
+              <span>Allocation Guide</span>
+              <span className="sec-badge">Method 1 · Crash-Buying</span>
+            </div>
+            <table className="alloc-table">
+              <thead>
+                <tr>
+                  <th>Drawdown</th>
+                  <th>Trigger $</th>
+                  <th>%</th>
+                  <th>Amount</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody>
+                {guide.map(({pct:p, invest, triggerPrice, amount, triggered, active}) => (
+                  <tr key={p}
+                    className={active ? 'alloc-row-active' : triggered && !active ? 'alloc-row-used' : ''}>
+                    <td className="dd-cell" style={{color: triggered ? '#EF4444' : 'var(--muted)'}}>
+                      {p}%
+                      {active && <span style={{marginLeft:5,color:tc.color,fontSize:9}}>◀</span>}
+                    </td>
+                    <td className="trigger-cell">{$(triggerPrice)}</td>
+                    <td className="pct-cell">{invest}%</td>
+                    <td className="amt-cell">${(amount/1000).toFixed(0)}K</td>
+                    <td>
+                      <button className="use-btn"
+                        style={{
+                          background: active ? tc.color : triggered ? 'var(--border2)' : 'var(--border)',
+                          color:      active ? 'white'  : triggered ? 'var(--muted)' : 'var(--muted2)',
+                        }}
+                        onClick={() => { setAmtStr(amount.toFixed(0)); setAction('BUY'); }}>
+                        Use
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+                <tr className="alloc-total-row">
+                  <td colSpan={2} style={{color:'var(--muted)'}}>Total invested</td>
+                  <td style={{fontFamily:'monospace'}}>100%</td>
+                  <td style={{fontFamily:'monospace'}}>${(cash/1000).toFixed(0)}K</td>
+                  <td></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        {/* ── RIGHT PANEL ────────────────────── */}
+        <div className="right-panel">
+
+          {/* Chart */}
+          <div className="chart-wrap">
+            <div className="chart-meta">
+              <span className="chart-meta-label">{tc.name} · as of {currentDate || '—'}</span>
+              <div className="chart-legend">
+                <span><span className="legend-dot" style={{background:'#F59E0B',borderTop:'1px dashed #F59E0B'}}></span> ATH</span>
+                <span><span className="legend-dot" style={{borderTop:'1px dashed rgba(239,68,68,0.7)'}}></span> Trigger levels</span>
+              </div>
+            </div>
+            {loading
+              ? <div className="loading-box">Fetching {ticker} price history from Stooq…</div>
+              : errMsg
+              ? <div className="err-box">{errMsg}<br/><button onClick={fetchData} style={{marginTop:10,padding:'4px 12px',background:'var(--border2)',border:'none',color:'var(--text)',borderRadius:4,cursor:'pointer'}}>Retry</button></div>
+              : <PriceChart data={hist} peakPrice={peakPrice} triggerLevels={triggerLevels} color={tc.color} ticker={ticker}/>
+            }
+          </div>
+
+          {/* Trade Input */}
+          <div className="trade-section">
+            <div className="sec-hdr" style={{margin:'0 -16px 8px',padding:'5px 16px'}}>
+              <span>Trade Input</span>
+              {currentPrice && <span style={{color:'var(--muted)',fontSize:10,fontFamily:'monospace'}}>{tc.label} @ {$(currentPrice)}</span>}
+            </div>
+            <div className="trade-row">
+              <div className="action-group">
+                {['BUY','SELL'].map(a => (
+                  <button key={a} className="action-btn"
+                    onClick={() => setAction(a)}
+                    style={{
+                      background: action===a ? (a==='BUY'?'#22C55E':'#EF4444') : 'var(--border2)',
+                      color:      action===a ? 'white' : 'var(--muted)',
+                    }}>
+                    {a}
+                  </button>
+                ))}
+              </div>
+
+              <input className="trade-input" type="number" placeholder="Amount ($)"
+                value={amtStr} onChange={e => setAmtStr(e.target.value)}/>
+
+              <span className="trade-units-hint">
+                {tradeUnits > 0 ? `= ${u4(tradeUnits)} units` : '— units'}
+              </span>
+
+              <input className="trade-note" type="text" placeholder="Note (optional)"
+                value={note} onChange={e => setNote(e.target.value)}/>
+
+              <button className="exec-btn"
+                disabled={!tradeAmt || !currentPrice}
+                onClick={execTrade}
+                style={{
+                  background: tradeAmt && currentPrice ? tc.color : 'var(--border2)',
+                  color:      tradeAmt && currentPrice ? 'white'  : 'var(--muted2)',
+                }}>
+                Execute Trade
+              </button>
+            </div>
+            {tradeAmt > 0 && currentPrice && (
+              <div className="trade-preview">
+                Preview: {action} {u4(tradeUnits)} units at {$(currentPrice)} = {$(tradeAmt)} ·
+                Cash after: {$(pf.cashBal + (action==='SELL'?tradeAmt:-tradeAmt))}
+              </div>
+            )}
+          </div>
+
+          {/* Transaction Log */}
+          <div className="tx-log">
+            <div className="sec-hdr">
+              <span>Transaction Log</span>
+              <div style={{display:'flex',gap:10,alignItems:'center'}}>
+                <span style={{color:'var(--muted)',fontSize:10}}>{txs.length} trade{txs.length!==1?'s':''}</span>
+                {txs.length > 0 && (
+                  <button onClick={clearAll} style={{background:'none',border:'none',color:'var(--muted2)',cursor:'pointer',fontSize:10}}>
+                    Clear all
+                  </button>
+                )}
+              </div>
+            </div>
+
+            {txs.length === 0
+              ? <div className="tx-empty">No trades yet. Use the Allocation Guide to place your first trade.</div>
+              : (
+                <table className="tx-table">
+                  <thead>
+                    <tr>
+                      <th>#</th>
+                      <th>Date</th>
+                      <th>Price</th>
+                      <th>Action</th>
+                      <th>Units</th>
+                      <th>Amount</th>
+                      <th>Cash After</th>
+                      <th>Units After</th>
+                      <th>Equity After</th>
+                      <th>Note</th>
+                      <th></th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {txWithState.map((tx,i) => (
+                      <tr key={tx.id}>
+                        <td style={{color:'var(--muted)'}}>{i+1}</td>
+                        <td>{tx.date}</td>
+                        <td>{$(tx.price)}</td>
+                        <td><span className={`badge badge-${tx.action.toLowerCase()}`}>{tx.action}</span></td>
+                        <td>{u4(tx.units)}</td>
+                        <td>{$(tx.amount)}</td>
+                        <td>{$(tx.cashAfter)}</td>
+                        <td>{u4(tx.unitsAfter)}</td>
+                        <td style={{color: tx.equityAfter >= cash ? '#22C55E' : '#EF4444'}}>{$(tx.equityAfter)}</td>
+                        <td style={{color:'var(--muted)',maxWidth:120,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>
+                          {tx.note || <span style={{color:'var(--muted2)'}}>—</span>}
+                        </td>
+                        <td><button className="tx-del" onClick={() => removeTx(tx.id)}>✕</button></td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              )
+            }
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App />);
 </script>
 </body>
 </html>
