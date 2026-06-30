@@ -12,17 +12,17 @@
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
     :root {
-      --bg:       #07090F;
-      --surface:  #0C1018;
-      --surface2: #101420;
-      --border:   #182030;
-      --border2:  #1E2A3C;
-      --text:     #C8D6E8;
-      --muted:    #4A5F78;
-      --muted2:   #2A3B52;
-      --success:  #22C55E;
-      --danger:   #EF4444;
-      --warning:  #F59E0B;
+      --bg:       #EEF2F7;
+      --surface:  #FFFFFF;
+      --surface2: #F4F7FB;
+      --border:   #D1D9E6;
+      --border2:  #E2E8F2;
+      --text:     #1A2640;
+      --muted:    #5A6E8C;
+      --muted2:   #98AABF;
+      --success:  #16A34A;
+      --danger:   #DC2626;
+      --warning:  #B45309;
     }
 
     body {
@@ -47,6 +47,7 @@
       background: var(--surface);
       border-bottom: 1px solid var(--border);
       flex-shrink: 0;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.06);
     }
     .logo {
       font-size: 12px;
@@ -59,8 +60,8 @@
     .ticker-tab {
       padding: 4px 11px;
       border-radius: 5px;
-      border: 1px solid var(--border2);
-      background: transparent;
+      border: 1px solid var(--border);
+      background: var(--surface2);
       color: var(--muted);
       cursor: pointer;
       font-size: 12px;
@@ -68,7 +69,7 @@
       font-family: 'JetBrains Mono', monospace;
       transition: all 0.15s;
     }
-    .ticker-tab:hover { color: var(--text); border-color: var(--muted); }
+    .ticker-tab:hover { color: var(--text); border-color: var(--muted); background: var(--surface); }
     .header-price {
       margin-left: auto;
       display: flex;
@@ -88,15 +89,15 @@
     }
     .refresh-btn {
       padding: 4px 10px;
-      border: 1px solid var(--border2);
-      background: transparent;
+      border: 1px solid var(--border);
+      background: var(--surface2);
       color: var(--muted);
       border-radius: 4px;
       font-size: 11px;
       cursor: pointer;
       transition: all 0.15s;
     }
-    .refresh-btn:hover { color: var(--text); border-color: var(--muted); }
+    .refresh-btn:hover { color: var(--text); border-color: var(--muted); background: var(--surface); }
 
     /* ─── LAYOUT ──────────────────────────────────── */
     .app-body {
@@ -112,6 +113,7 @@
       display: flex;
       flex-direction: column;
       overflow: hidden;
+      background: var(--surface);
     }
     .left-scroll { overflow-y: auto; flex: 1; }
 
@@ -120,13 +122,14 @@
       display: flex;
       flex-direction: column;
       overflow: hidden;
+      background: var(--surface);
     }
 
     /* ─── SECTION HEADERS ────────────────────────── */
     .sec-hdr {
       padding: 6px 14px;
       background: var(--surface2);
-      border-bottom: 1px solid var(--border);
+      border-bottom: 1px solid var(--border2);
       font-size: 9.5px;
       font-weight: 700;
       letter-spacing: 0.12em;
@@ -147,7 +150,7 @@
     }
 
     /* ─── DRAWDOWN METER ─────────────────────────── */
-    .dd-meter-wrap { padding: 12px 14px 10px; border-bottom: 1px solid var(--border); }
+    .dd-meter-wrap { padding: 12px 14px 10px; border-bottom: 1px solid var(--border2); }
     .dd-top { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 8px; }
     .dd-value {
       font-family: 'JetBrains Mono', monospace;
@@ -166,7 +169,7 @@
     .meter-fill {
       height: 100%;
       border-radius: 4px;
-      background: linear-gradient(90deg, #22C55E 0%, #F59E0B 50%, #EF4444 100%);
+      background: linear-gradient(90deg, #16A34A 0%, #D97706 50%, #DC2626 100%);
       background-size: 300px 100%;
       transition: width 0.4s ease;
       position: relative;
@@ -179,6 +182,7 @@
       height: 13px;
       border-radius: 50%;
       border: 2px solid var(--surface);
+      box-shadow: 0 1px 3px rgba(0,0,0,0.2);
     }
     .meter-ticks { display: flex; justify-content: space-between; margin-top: 5px; }
     .meter-tick { font-size: 9px; color: var(--muted2); font-family: monospace; }
@@ -189,14 +193,14 @@
       align-items: center;
       gap: 8px;
       padding: 7px 14px;
-      border-bottom: 1px solid var(--border);
+      border-bottom: 1px solid var(--border2);
     }
     .cash-label { color: var(--muted); font-size: 11px; white-space: nowrap; }
     .cash-input {
       flex: 1;
       text-align: right;
       background: var(--surface2);
-      border: 1px solid var(--border2);
+      border: 1px solid var(--border);
       color: var(--text);
       padding: 4px 8px;
       border-radius: 4px;
@@ -204,16 +208,16 @@
       font-family: 'JetBrains Mono', monospace;
       outline: none;
     }
-    .cash-input:focus { border-color: var(--muted); }
+    .cash-input:focus { border-color: var(--muted); box-shadow: 0 0 0 2px rgba(90,110,140,0.12); }
     .pf-row {
       display: flex;
       justify-content: space-between;
       align-items: center;
       padding: 5px 14px;
-      border-bottom: 1px solid rgba(255,255,255,0.025);
+      border-bottom: 1px solid rgba(0,0,0,0.04);
     }
     .pf-label { color: var(--muted); font-size: 11.5px; }
-    .pf-val { font-family: 'JetBrains Mono', monospace; font-size: 12px; }
+    .pf-val { font-family: 'JetBrains Mono', monospace; font-size: 12px; color: var(--text); }
     .pf-val.bold { font-weight: 600; font-size: 13px; }
     .pf-val.pos { color: var(--success); }
     .pf-val.neg { color: var(--danger); }
@@ -232,11 +236,11 @@
     }
     .alloc-table td {
       padding: 6px 8px;
-      border-bottom: 1px solid rgba(255,255,255,0.03);
+      border-bottom: 1px solid rgba(0,0,0,0.04);
       font-size: 11.5px;
     }
-    .alloc-row-active { background: rgba(255,255,255,0.04); }
-    .alloc-row-used td { opacity: 0.45; }
+    .alloc-row-active { background: rgba(0,0,0,0.03); }
+    .alloc-row-used td { opacity: 0.5; }
     .dd-cell {
       font-family: 'JetBrains Mono', monospace;
       font-weight: 600;
@@ -256,7 +260,7 @@
     }
     .alloc-total-row td {
       padding: 6px 8px;
-      border-top: 1px solid var(--border2);
+      border-top: 1px solid var(--border);
       color: var(--muted);
       font-size: 11px;
     }
@@ -266,6 +270,7 @@
       padding: 12px 16px 8px;
       border-bottom: 1px solid var(--border);
       flex-shrink: 0;
+      background: var(--surface);
     }
     .chart-meta {
       display: flex;
@@ -285,6 +290,7 @@
     }
     .err-box {
       display: flex;
+      flex-direction: column;
       align-items: center;
       justify-content: center;
       height: 180px;
@@ -292,6 +298,7 @@
       font-size: 12px;
       text-align: center;
       padding: 16px;
+      gap: 10px;
     }
 
     /* ─── TRADE INPUT ─────────────────────────────── */
@@ -299,12 +306,13 @@
       padding: 10px 16px;
       border-bottom: 1px solid var(--border);
       flex-shrink: 0;
+      background: var(--surface);
     }
     .trade-row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
     .action-group { display: flex; gap: 3px; }
     .action-btn {
       padding: 5px 14px;
-      border: none;
+      border: 1px solid var(--border);
       border-radius: 4px;
       font-weight: 700;
       font-size: 12px;
@@ -315,7 +323,7 @@
     .trade-input {
       width: 130px;
       background: var(--surface2);
-      border: 1px solid var(--border2);
+      border: 1px solid var(--border);
       color: var(--text);
       padding: 5px 9px;
       border-radius: 4px;
@@ -323,19 +331,19 @@
       font-family: 'JetBrains Mono', monospace;
       outline: none;
     }
-    .trade-input:focus { border-color: var(--muted); }
+    .trade-input:focus { border-color: var(--muted); box-shadow: 0 0 0 2px rgba(90,110,140,0.12); }
     .trade-note {
       flex: 1;
       min-width: 100px;
       background: var(--surface2);
-      border: 1px solid var(--border2);
+      border: 1px solid var(--border);
       color: var(--text);
       padding: 5px 9px;
       border-radius: 4px;
       font-size: 12px;
       outline: none;
     }
-    .trade-note:focus { border-color: var(--muted); }
+    .trade-note:focus { border-color: var(--muted); box-shadow: 0 0 0 2px rgba(90,110,140,0.12); }
     .trade-units-hint { font-size: 11px; color: var(--muted); font-family: 'JetBrains Mono', monospace; white-space: nowrap; }
     .exec-btn {
       padding: 5px 16px;
@@ -352,10 +360,14 @@
       font-size: 11px;
       color: var(--muted);
       font-family: 'JetBrains Mono', monospace;
+      background: var(--surface2);
+      padding: 5px 8px;
+      border-radius: 4px;
+      border-left: 2px solid var(--border);
     }
 
     /* ─── TRANSACTION LOG ────────────────────────── */
-    .tx-log { flex: 1; overflow-y: auto; }
+    .tx-log { flex: 1; overflow-y: auto; background: var(--surface); }
     .tx-table { width: 100%; border-collapse: collapse; }
     .tx-table th {
       position: sticky;
@@ -369,13 +381,16 @@
       letter-spacing: 0.07em;
       background: var(--surface2);
       z-index: 2;
+      border-bottom: 1px solid var(--border);
     }
     .tx-table td {
       padding: 6px 8px;
-      border-bottom: 1px solid rgba(255,255,255,0.025);
+      border-bottom: 1px solid rgba(0,0,0,0.04);
       font-size: 11px;
       font-family: 'JetBrains Mono', monospace;
+      color: var(--text);
     }
+    .tx-table tr:hover td { background: var(--surface2); }
     .badge {
       display: inline-block;
       padding: 1px 7px;
@@ -383,8 +398,8 @@
       font-size: 10px;
       font-weight: 700;
     }
-    .badge-buy  { background: rgba(34,197,94,0.15);  color: #22C55E; }
-    .badge-sell { background: rgba(239,68,68,0.15);  color: #EF4444; }
+    .badge-buy  { background: #DCFCE7; color: #15803D; }
+    .badge-sell { background: #FEE2E2; color: #B91C1C; }
     .tx-del {
       background: none;
       border: none;
@@ -407,13 +422,13 @@
       margin: 10px 14px;
       padding: 9px 11px;
       border-radius: 6px;
-      border: 1px solid rgba(6,182,212,0.25);
-      background: rgba(6,182,212,0.06);
+      border: 1px solid rgba(6,182,212,0.35);
+      background: rgba(6,182,212,0.07);
       font-size: 11px;
       line-height: 1.6;
       color: var(--muted);
     }
-    .index-banner strong { color: #06B6D4; }
+    .index-banner strong { color: #0891B2; }
     .index-banner .etf-chips { display:flex; gap:5px; margin-top:6px; flex-wrap:wrap; }
     .index-chip {
       padding: 2px 8px;
@@ -428,9 +443,10 @@
     .index-chip:hover { opacity: 0.75; }
 
     /* ─── SCROLLBAR ───────────────────────────────── */
-    ::-webkit-scrollbar { width: 4px; height: 4px; }
-    ::-webkit-scrollbar-track { background: transparent; }
-    ::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 2px; }
+    ::-webkit-scrollbar { width: 5px; height: 5px; }
+    ::-webkit-scrollbar-track { background: var(--surface2); }
+    ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+    ::-webkit-scrollbar-thumb:hover { background: var(--muted2); }
   </style>
 </head>
 <body>
@@ -623,8 +639,8 @@ function PriceChart({ data, peakPrice, triggerLevels, color, ticker }) {
         const y = yS(p);
         if (y < PT || y > H-PB) return null;
         return <g key={p}>
-          <line x1={PL} x2={W-PR} y1={y} y2={y} stroke="#182030" strokeWidth="1"/>
-          <text x={PL-4} y={y+4} textAnchor="end" fill="#3A5070" fontSize="9.5" fontFamily="monospace">
+          <line x1={PL} x2={W-PR} y1={y} y2={y} stroke="#DDE4EF" strokeWidth="1"/>
+          <text x={PL-4} y={y+4} textAnchor="end" fill="#8FA3BC" fontSize="9.5" fontFamily="monospace">
             {p >= 1000 ? '$'+(p/1000).toFixed(1)+'k' : '$'+p.toFixed(0)}
           </text>
         </g>;
@@ -640,8 +656,8 @@ function PriceChart({ data, peakPrice, triggerLevels, color, ticker }) {
       {peakPrice && peakPrice >= lo && peakPrice <= hi && (() => {
         const y = yS(peakPrice);
         return <>
-          <line x1={PL} x2={W-PR} y1={y} y2={y} stroke="#F59E0B" strokeWidth="1" strokeDasharray="5,4" opacity="0.7"/>
-          <text x={W-PR+3} y={y+4} fill="#F59E0B" fontSize="9" fontFamily="monospace">ATH</text>
+          <line x1={PL} x2={W-PR} y1={y} y2={y} stroke="#B45309" strokeWidth="1" strokeDasharray="5,4" opacity="0.7"/>
+          <text x={W-PR+3} y={y+4} fill="#B45309" fontSize="9" fontFamily="monospace">ATH</text>
         </>;
       })()}
 
@@ -659,7 +675,7 @@ function PriceChart({ data, peakPrice, triggerLevels, color, ticker }) {
 
       {/* X axis years */}
       {xLabels.map(({yr,x}) => (
-        <text key={yr} x={x} y={H-8} textAnchor="middle" fill="#2A3D58" fontSize="10">{yr}</text>
+        <text key={yr} x={x} y={H-8} textAnchor="middle" fill="#8FA3BC" fontSize="10">{yr}</text>
       ))}
 
       {/* Current price marker */}
@@ -675,15 +691,15 @@ function PriceChart({ data, peakPrice, triggerLevels, color, ticker }) {
         const tx = Math.min(tip.x + 8, W - 108);
         const ty = Math.max(PT, Math.min(tip.y - 34, H-PB-52));
         return <g>
-          <line x1={tip.x} x2={tip.x} y1={PT} y2={H-PB} stroke="#2A3D58" strokeWidth="1" strokeDasharray="3,3"/>
+          <line x1={tip.x} x2={tip.x} y1={PT} y2={H-PB} stroke="#BFD0E8" strokeWidth="1" strokeDasharray="3,3"/>
           <circle cx={tip.x} cy={tip.y} r="3.5" fill={color}/>
-          <rect x={tx} y={ty} width="104" height={tip.dd!=null?50:34} rx="4" fill="#0C1018" stroke="#182030"/>
-          <text x={tx+7} y={ty+14} fill="#5A7090" fontSize="10" fontFamily="monospace">{tip.date}</text>
-          <text x={tx+7} y={ty+28} fill="white" fontSize="12" fontFamily="monospace" fontWeight="600">
+          <rect x={tx} y={ty} width="104" height={tip.dd!=null?50:34} rx="4" fill="#FFFFFF" stroke="#D1D9E6" strokeWidth="1" filter="drop-shadow(0 1px 3px rgba(0,0,0,0.10))"/>
+          <text x={tx+7} y={ty+14} fill="#8FA3BC" fontSize="10" fontFamily="monospace">{tip.date}</text>
+          <text x={tx+7} y={ty+28} fill="#1A2640" fontSize="12" fontFamily="monospace" fontWeight="600">
             ${tip.close.toFixed(2)}
           </text>
           {tip.dd != null && (
-            <text x={tx+7} y={ty+43} fill={tip.dd >= 0 ? '#22C55E' : '#EF4444'} fontSize="10" fontFamily="monospace">
+            <text x={tx+7} y={ty+43} fill={tip.dd >= 0 ? '#16A34A' : '#DC2626'} fontSize="10" fontFamily="monospace">
               {tip.dd.toFixed(2)}% vs ATH
             </text>
           )}
@@ -698,7 +714,7 @@ function PriceChart({ data, peakPrice, triggerLevels, color, ticker }) {
 ═══════════════════════════════════════════════════ */
 function DrawdownMeter({ dd, peakPrice }) {
   const clampedPct = Math.max(0, Math.min(100, (Math.abs(dd||0) / 30) * 100));
-  const col = dd > -10 ? '#22C55E' : dd > -20 ? '#F59E0B' : '#EF4444';
+  const col = dd > -10 ? '#16A34A' : dd > -20 ? '#B45309' : '#DC2626';
 
   return (
     <div className="dd-meter-wrap">
@@ -713,7 +729,7 @@ function DrawdownMeter({ dd, peakPrice }) {
         {DD_LEVELS.map(l => (
           <div key={l.pct} style={{
             position:'absolute', left:`${Math.abs(l.pct)/30*100}%`,
-            top:-3, width:1, height:13, background:'rgba(255,255,255,0.08)'
+            top:-3, width:1, height:13, background:'rgba(0,0,0,0.12)'
           }}/>
         ))}
       </div>
@@ -869,8 +885,8 @@ function App() {
             <span className="current-price" style={{color:tc.color}}>{$(currentPrice)}</span>
             {dd != null && (
               <span className="drawdown-pill"
-                style={{ background: dd > -10 ? 'rgba(34,197,94,0.12)' : dd > -20 ? 'rgba(245,158,11,0.12)' : 'rgba(239,68,68,0.12)',
-                         color: dd > -10 ? '#22C55E' : dd > -20 ? '#F59E0B' : '#EF4444' }}>
+                style={{ background: dd > -10 ? 'rgba(22,163,74,0.12)' : dd > -20 ? 'rgba(180,83,9,0.10)' : 'rgba(220,38,38,0.10)',
+                         color: dd > -10 ? '#16A34A' : dd > -20 ? '#B45309' : '#DC2626' }}>
                 {pct(dd)} from ATH
               </span>
             )}
@@ -962,7 +978,7 @@ function App() {
                 {guide.map(({pct:p, invest, triggerPrice, amount, triggered, active}) => (
                   <tr key={p}
                     className={active ? 'alloc-row-active' : triggered && !active ? 'alloc-row-used' : ''}>
-                    <td className="dd-cell" style={{color: triggered ? '#EF4444' : 'var(--muted)'}}>
+                    <td className="dd-cell" style={{color: triggered ? '#DC2626' : 'var(--muted)'}}>
                       {p}%
                       {active && <span style={{marginLeft:5,color:tc.color,fontSize:9}}>◀</span>}
                     </td>
@@ -1003,7 +1019,7 @@ function App() {
                 {dataSource && <span style={{marginLeft:8,color:'var(--muted2)',fontSize:10}}>via {dataSource}</span>}
               </span>
               <div className="chart-legend">
-                <span><span className="legend-dot" style={{background:'#F59E0B',borderTop:'1px dashed #F59E0B'}}></span> ATH</span>
+                <span><span className="legend-dot" style={{background:'#B45309',borderTop:'1px dashed #B45309'}}></span> ATH</span>
                 <span><span className="legend-dot" style={{borderTop:'1px dashed rgba(239,68,68,0.7)'}}></span> Trigger levels</span>
               </div>
             </div>
@@ -1031,7 +1047,7 @@ function App() {
                   <button key={a} className="action-btn"
                     onClick={() => setAction(a)}
                     style={{
-                      background: action===a ? (a==='BUY'?'#22C55E':'#EF4444') : 'var(--border2)',
+                      background: action===a ? (a==='BUY'?'#16A34A':'#DC2626') : 'var(--surface2)',
                       color:      action===a ? 'white' : 'var(--muted)',
                     }}>
                     {a}
@@ -1111,7 +1127,7 @@ function App() {
                         <td>{$(tx.amount)}</td>
                         <td>{$(tx.cashAfter)}</td>
                         <td>{u4(tx.unitsAfter)}</td>
-                        <td style={{color: tx.equityAfter >= cash ? '#22C55E' : '#EF4444'}}>{$(tx.equityAfter)}</td>
+                        <td style={{color: tx.equityAfter >= cash ? '#16A34A' : '#DC2626'}}>{$(tx.equityAfter)}</td>
                         <td style={{color:'var(--muted)',maxWidth:120,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>
                           {tx.note || <span style={{color:'var(--muted2)'}}>—</span>}
                         </td>
