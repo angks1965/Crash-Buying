@@ -459,39 +459,97 @@ const DD_LEVELS = [
   { pct: -30, invest: 30 },
 ];
 
+// Yahoo Finance symbol mapping (fallback data source)
+const YF_SYMBOLS = {
+  SPX:  '^GSPC',
+  SPY:  'SPY',
+  QQQ:  'QQQ',
+  VOO:  'VOO',
+  URTH: 'URTH',
+};
+
 const PROXIES = [
-  u => `https://api.allorigins.win/raw?url=${encodeURIComponent(u)}`,
   u => `https://corsproxy.io/?${encodeURIComponent(u)}`,
+  u => `https://api.allorigins.win/raw?url=${encodeURIComponent(u)}`,
   u => `https://api.codetabs.com/v1/proxy?quest=${u}`,
+  u => `https://thingproxy.freeboard.io/fetch/${u}`,
 ];
 
 /* ═══════════════════════════════════════════════════
    HELPERS
 ═══════════════════════════════════════════════════ */
-async function fetchWithProxy(url) {
+async function fetchWithProxy(url, isJson = false) {
   for (const makeProxy of PROXIES) {
     try {
       const ctrl = new AbortController();
-      const tid = setTimeout(() => ctrl.abort(), 9000);
+      const tid = setTimeout(() => ctrl.abort(), 10000);
       const res = await fetch(makeProxy(url), { signal: ctrl.signal });
       clearTimeout(tid);
       if (!res.ok) continue;
-      const text = await res.text();
-      if (text && text.includes(',') && text.length > 50) return text;
-    } catch { /* try next */ }
+      if (isJson) {
+        const json = await res.json();
+        if (json) return json;
+      } else {
+        const text = await res.text();
+        // Reject HTML error pages — valid CSV/data won't start with '<'
+        if (text && !text.trimStart().startsWith('<') && text.includes(',') && text.length > 100) return text;
+      }
+    } catch { /* try next proxy */ }
   }
   throw new Error('All proxies failed');
 }
 
 function parseStooqCSV(csv) {
   const lines = csv.trim().split('\n');
-  if (lines.length < 2) throw new Error('Empty response');
+  if (lines.length < 2) throw new Error('Empty CSV');
+  // Validate header row contains expected columns
+  const header = lines[0].toLowerCase();
+  if (!header.includes('close')) throw new Error('Unexpected CSV format');
   return lines.slice(1).map(line => {
     const p = line.split(',');
     const close = parseFloat(p[4]);
     if (!p[0] || isNaN(close) || close <= 0) return null;
     return { date: p[0].trim(), close };
   }).filter(Boolean).sort((a,b) => a.date.localeCompare(b.date));
+}
+
+// Yahoo Finance v8 chart API — JSON format, no crumb needed for chart endpoint
+async function fetchYahooFinance(ticker) {
+  const sym = YF_SYMBOLS[ticker];
+  if (!sym) throw new Error(`No Yahoo Finance symbol for ${ticker}`);
+  const url = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(sym)}?range=10y&interval=1d&includePrePost=false`;
+  const json = await fetchWithProxy(url, true);
+  const result = json?.chart?.result?.[0];
+  if (!result) throw new Error('Yahoo Finance returned no result');
+  const { timestamp, indicators } = result;
+  const closes = indicators?.quote?.[0]?.close;
+  if (!timestamp || !closes) throw new Error('Yahoo Finance missing price data');
+  return timestamp.map((ts, i) => {
+    const close = closes[i];
+    if (!close || close <= 0) return null;
+    const d = new Date(ts * 1000);
+    const date = d.toISOString().slice(0, 10);
+    return { date, close };
+  }).filter(Boolean).sort((a, b) => a.date.localeCompare(b.date));
+}
+
+// Master fetch: Stooq primary → Yahoo Finance fallback
+async function fetchPriceData(ticker, stooqSymbol, onStatus) {
+  // ── Try Stooq ──
+  try {
+    onStatus('stooq');
+    const url = `https://stooq.com/q/d/l/?s=${stooqSymbol}&i=d&d1=20150101`;
+    const csv = await fetchWithProxy(url);
+    const parsed = parseStooqCSV(csv);
+    if (parsed.length > 50) return { data: parsed, source: 'Stooq' };
+  } catch(e) {
+    console.warn(`[${ticker}] Stooq failed (${e.message}), trying Yahoo Finance…`);
+  }
+  // ── Fallback: Yahoo Finance ──
+  onStatus('yahoo');
+  const parsed = await fetchYahooFinance(ticker);
+  if (parsed.length > 50) return { data: parsed, source: 'Yahoo Finance' };
+  throw new Error('Both data sources returned insufficient data');
 }
 
 const $  = n => (n == null ? '—' : '$' + n.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2}));
@@ -678,6 +736,8 @@ function App() {
   const [hist, setHist]         = useState([]);
   const [loading, setLoading]   = useState(false);
   const [errMsg, setErrMsg]     = useState(null);
+  const [dataSource, setDataSource] = useState(null);  // 'Stooq' | 'Yahoo Finance'
+  const [fetchStatus, setFetchStatus] = useState(null); // 'stooq' | 'yahoo'
   const [action, setAction]     = useState('BUY');
   const [amtStr, setAmtStr]     = useState('');
   const [note, setNote]         = useState('');
@@ -697,18 +757,16 @@ function App() {
     try { localStorage.setItem(`dca_${ticker}`, JSON.stringify(txs)); } catch {}
   }, [txs, ticker]);
 
-  // Fetch data
+  // Fetch data — Stooq primary, Yahoo Finance fallback
   const fetchData = useCallback(async () => {
-    setLoading(true); setErrMsg(null);
+    setLoading(true); setErrMsg(null); setDataSource(null); setFetchStatus(null);
     try {
-      const url = `https://stooq.com/q/d/l/?s=${tc.stooq}&i=d&d1=20150101`;
-      const csv = await fetchWithProxy(url);
-      const parsed = parseStooqCSV(csv);
-      if (!parsed.length) throw new Error('No price data returned');
-      setHist(parsed);
+      const { data, source } = await fetchPriceData(ticker, tc.stooq, setFetchStatus);
+      setHist(data);
+      setDataSource(source);
     } catch(e) {
-      setErrMsg(`Could not load ${ticker} data. ${e.message}. Check console or try again.`);
-    } finally { setLoading(false); }
+      setErrMsg(`Could not load ${ticker} data from Stooq or Yahoo Finance. ${e.message}`);
+    } finally { setLoading(false); setFetchStatus(null); }
   }, [ticker, tc.stooq]);
 
   useEffect(() => { fetchData(); }, [fetchData]);
@@ -940,16 +998,23 @@ function App() {
           {/* Chart */}
           <div className="chart-wrap">
             <div className="chart-meta">
-              <span className="chart-meta-label">{tc.name} · as of {currentDate || '—'}</span>
+              <span className="chart-meta-label">
+                {tc.name} · as of {currentDate || '—'}
+                {dataSource && <span style={{marginLeft:8,color:'var(--muted2)',fontSize:10}}>via {dataSource}</span>}
+              </span>
               <div className="chart-legend">
                 <span><span className="legend-dot" style={{background:'#F59E0B',borderTop:'1px dashed #F59E0B'}}></span> ATH</span>
                 <span><span className="legend-dot" style={{borderTop:'1px dashed rgba(239,68,68,0.7)'}}></span> Trigger levels</span>
               </div>
             </div>
             {loading
-              ? <div className="loading-box">Fetching {ticker} price history from Stooq…</div>
+              ? <div className="loading-box">
+                  {fetchStatus === 'yahoo'
+                    ? `Stooq unavailable — trying Yahoo Finance for ${ticker}…`
+                    : `Fetching ${ticker} price history from Stooq…`}
+                </div>
               : errMsg
-              ? <div className="err-box">{errMsg}<br/><button onClick={fetchData} style={{marginTop:10,padding:'4px 12px',background:'var(--border2)',border:'none',color:'var(--text)',borderRadius:4,cursor:'pointer'}}>Retry</button></div>
+              ? <div className="err-box">{errMsg}<br/><button onClick={fetchData} style={{marginTop:10,padding:'4px 12px',background:'var(--border2)',border:'none',color:'var(--text)',borderRadius:4,cursor:'pointer'}}>↻ Retry</button></div>
               : <PriceChart data={hist} peakPrice={peakPrice} triggerLevels={triggerLevels} color={tc.color} ticker={ticker}/>
             }
           </div>
